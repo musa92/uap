@@ -27,7 +27,7 @@ dependencies = []
 
 [project.optional-dependencies]
 fast = ["cryptography>=42"]
-dev = ["pytest>=8", "jsonschema>=4", "hypothesis>=6.100"]
+dev = ["pytest>=8", "jsonschema>=4", "hypothesis>=6.167.1"]
 
 [project.urls]
 Homepage = "https://github.com/musa92/uap"
