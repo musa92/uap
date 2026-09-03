@@ -5,52 +5,47 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  markdown:
+  prose:
+    name: spelling, terminology, markdown
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DavidAnson/markdownlint-cli2-action@v16
+      - uses: actions/setup-node@v4
         with:
-          globs: "**/*.md"
-          config: ".github/linters/.markdownlint.json"
-
-  spelling:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: streetsidesoftware/cspell-action@v6
-        with:
-          config: ".cspell.json"
-          incremental_files_only: false
-
-  links:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+          node-version: "20"
+          cache: npm
+      # `npm ci` installs the pinned lockfile. Running these tools through npx
+      # instead re-downloads them on every invocation, which took two minutes
+      # per run and made the checks feel broken.
+      - run: npm ci
+      - run: npm run lint:spelling
+      - run: npm run lint:markdown
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
+      - run: python3 scripts/check_terminology.py
       - run: python3 scripts/check_links.py
 
-  json-format:
+  json:
+    name: every JSON file parses
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: Every JSON file parses and is stably formatted
-        run: |
+      - run: |
           python3 - <<'EOF'
           import json, pathlib, sys
           bad = []
           for p in pathlib.Path('.').rglob('*.json'):
               if any(x in p.parts for x in ('.git', 'node_modules', '__pycache__')):
                   continue
-              try:
-                  json.loads(p.read_text())
-              except Exception as e:
-                  bad.append(f"{p}: {e}")
-          for b in bad:
-              print("FAIL", b)
+              try: json.loads(p.read_text())
+              except Exception as e: bad.append(f"{p}: {e}")
+          [print("FAIL", b) for b in bad]
           sys.exit(1 if bad else 0)
           EOF

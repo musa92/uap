@@ -1,0 +1,19 @@
+{
+  "name": "uap-protocol",
+  "version": "2026.9.2",
+  "private": true,
+  "description": "Universal Ads Protocol — specification, schemas and conformance suite",
+  "license": "Apache-2.0",
+  "repository": { "type": "git", "url": "https://github.com/musa92/uap.git" },
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "lint": "npm run lint:spelling && npm run lint:markdown",
+    "lint:spelling": "cspell --config .cspell.json --no-progress --relative \"**/*.{md,json,py,yml,yaml,toml}\"",
+    "lint:markdown": "markdownlint-cli2 --config .github/linters/.markdownlint.json \"**/*.md\" \"#node_modules\"",
+    "lint:spelling:unused": "cspell --config .cspell.json --words-only --unique \"**/*\" > /dev/null"
+  },
+  "devDependencies": {
+    "cspell": "8.17.5",
+    "markdownlint-cli2": "0.17.2"
+  }
+}

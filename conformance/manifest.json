@@ -96,6 +96,48 @@
       "schema": "supply/ad_request.json",
       "expect": "invalid",
       "reason": "No answer commitment. Without a digest recorded before selection runs, answer integrity is an assertion the exchange cannot check."
+    },
+    {
+      "file": "valid/campaign-full.json",
+      "schema": "demand/campaign.json",
+      "expect": "valid",
+      "note": "A complete campaign with one CPC line item, GARM suitability, an AP2 spend mandate, and an approved creative."
+    },
+    {
+      "file": "valid/forecast-response.json",
+      "schema": "demand/forecast.json#/$defs/response",
+      "expect": "valid",
+      "note": "Ranges not points; two breakdowns suppressed below the k floor and listed as such."
+    },
+    {
+      "file": "valid/conversion-event.json",
+      "schema": "demand/conversion.json",
+      "expect": "valid",
+      "note": "A purchase reported by UCP checkout session reference, signed by the advertiser."
+    },
+    {
+      "file": "invalid/report-per-user-dimension.json",
+      "schema": "demand/report.json#/$defs/request",
+      "expect": "invalid",
+      "reason": "user_id is not a dimension. Per-user reporting is prohibited by \u00a76.6 and the dimension list is closed so it cannot be requested."
+    },
+    {
+      "file": "invalid/report-too-many-dimensions.json",
+      "schema": "demand/report.json#/$defs/request",
+      "expect": "invalid",
+      "reason": "Five dimensions. At most four, so the cell count stays coarse enough for the k floor to hold."
+    },
+    {
+      "file": "invalid/conversion-from-serving-node.json",
+      "schema": "demand/conversion.json",
+      "expect": "invalid",
+      "reason": "A serving node is not a permitted conversion source. It cannot observe a conversion and has every incentive to guess high."
+    },
+    {
+      "file": "invalid/line-item-cpm-without-bid.json",
+      "schema": "demand/line_item.json",
+      "expect": "invalid",
+      "reason": "pricing.model cpm without bid_cpm_micros. The amount member must match the model."
     }
   ]
 }

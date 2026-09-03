@@ -1,0 +1,16 @@
+# People, organisations and places.
+# Check the spelling against the source before adding. A misspelled name
+# whitelisted here becomes permanent and nobody will catch it again.
+
+Aghayev
+Kimi
+Moonshot
+Omnicom
+Publicis
+Ipsos
+IDFA
+CCPA
+ryokan
+shinkansen
+Musa
+musa

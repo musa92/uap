@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/demand/conversion.json",
+  "title": "ConversionEvent",
+  "name": "dev.uap.demand.conversion",
+  "version": "2026-09-02",
+  "description": "A server-to-server report that a click led to an outcome. Sent by the advertiser or through an AP2 payment mandate reference, never by the serving node.",
+  "$comment": "SPEC.md §9.2. The node cannot observe a conversion and has every incentive to guess high, so the only parties that may report one are the advertiser, from its own systems, and the payment rail, by mandate reference. The join key is the click_id issued in the Decision, which carries no user identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "click_id", "event_type", "occurred_at", "source"],
+  "properties": {
+    "event_id": { "type": "string", "maxLength": 128, "description": "Idempotency key; a repeat is ignored, not double-counted." },
+    "click_id": { "type": "string", "maxLength": 128, "description": "From the Decision that produced the click. Must be within the line item's conversion window." },
+    "event_type": {
+      "type": "string",
+      "enum": ["purchase", "signup", "lead", "install", "add_to_cart", "subscribe", "custom"]
+    },
+    "custom_type": { "type": "string", "maxLength": 64, "description": "Required when event_type is custom." },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "value": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "amount_micros": { "$ref": "../common/types/micros.json" },
+        "currency": { "$ref": "../common/types/currency.json" }
+      }
+    },
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["advertiser_server", "ap2_payment_mandate", "ucp_checkout"] },
+        "reference": { "type": "string", "maxLength": 512, "description": "Mandate id, UCP session id, or advertiser transaction reference." }
+      }
+    },
+    "signature": { "$ref": "../common/types/signature.json", "description": "Signed by the advertiser's enrolled key." }
+  },
+  "allOf": [
+    { "if": { "properties": { "event_type": { "const": "custom" } } }, "then": { "required": ["custom_type"] } }
+  ]
+}

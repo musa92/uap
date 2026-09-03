@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/demand/line_item.json",
+  "title": "LineItem",
+  "name": "dev.uap.demand.line_item",
+  "version": "2026-09-02",
+  "description": "The unit of demand that an auction ranks. A campaign owns one or more line items; a campaign bundle carries the subset eligible for a node. Targeting is a closed predicate over ContextSignal fields only.",
+  "$comment": "Previously defined only by example in SPEC.md §8.2. Promoted to a first-class schema because it is the object shared by the campaign API (buyer creates it), the bundle (exchange ships it), and the auction trace (node reports it). One definition, three consumers.\n\nMaps to an OpenRTB line of demand at the DSP, and to a Google Ads ad group: the level at which bid, budget share, and targeting are set.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["line_item_id", "advertiser", "pricing", "creatives", "status"],
+  "properties": {
+    "line_item_id": { "type": "string", "maxLength": 128 },
+    "campaign_id": { "type": "string", "maxLength": 128, "description": "Owning campaign. Absent inside a bundle, where campaign structure is not the node's concern." },
+    "advertiser": {
+      "type": "object", "additionalProperties": false, "required": ["id", "display_name"],
+      "properties": {
+        "id": { "type": "string", "maxLength": 256 },
+        "display_name": { "type": "string", "maxLength": 128 },
+        "domain": { "type": "string", "maxLength": 256 }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "in_review", "active", "paused", "exhausted", "ended", "rejected"],
+      "description": "Lifecycle state.",
+      "$comment": "  draft       editable, not serving\n  in_review   creative under policy review\n  active      eligible for bundles and hosted auctions\n  paused      buyer-initiated stop; budget retained\n  exhausted   budget or flight consumed\n  ended       flight over\n  rejected    review failed; see creatives[].review.rejection_reasons"
+    },
+    "targeting": { "type": "object", "description": "Appendix A predicate over ContextSignal. Depth <= 8, terms <= 64." },
+    "pricing": {
+      "type": "object", "additionalProperties": false, "required": ["model", "currency"],
+      "properties": {
+        "model": { "type": "string", "enum": ["cpm", "cpc", "cpa"] },
+        "currency": { "$ref": "../common/types/currency.json" },
+        "bid_cpm_micros": { "$ref": "../common/types/cpm.json" },
+        "bid_cpc_micros": { "$ref": "../common/types/micros.json" },
+        "bid_cpa_micros": { "$ref": "../common/types/micros.json" },
+        "bid_strategy": {
+          "type": "string", "enum": ["fixed", "maximize_clicks", "maximize_conversions", "target_cpa"],
+          "default": "fixed",
+          "description": "How the exchange may move the bid within the budget.",
+          "$comment": "Matches the objectives buyers already use. `fixed` is the only strategy a Profile L bundle can carry, since the node cannot run the optimiser; the exchange resolves the others to a fixed bid before bundling."
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "model": { "const": "cpm" } } }, "then": { "required": ["bid_cpm_micros"] } },
+        { "if": { "properties": { "model": { "const": "cpc" } } }, "then": { "required": ["bid_cpc_micros"] } },
+        { "if": { "properties": { "model": { "const": "cpa" } } }, "then": { "required": ["bid_cpa_micros"] } }
+      ]
+    },
+    "pacing": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "budget_micros": { "$ref": "../common/types/micros.json", "description": "Total for the flight." },
+        "daily_budget_micros": { "$ref": "../common/types/micros.json" },
+        "daily_cap_impressions": { "type": "integer", "minimum": 0 },
+        "node_share_impressions": { "type": "integer", "minimum": 0, "description": "Allocated slice for one node within a bundle. Set by the exchange, never the buyer." },
+        "smoothing": { "type": "string", "enum": ["even", "asap"], "default": "even" }
+      },
+      "$comment": "Allocations across nodes MUST sum to at most the remaining budget so that over-delivery is the exchange's risk, not the node's. See the open problem in docs/documentation/roadmap.md."
+    },
+    "frequency_cap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "per_conversation": { "type": "integer", "minimum": 0 },
+        "per_node_user_per_day": { "type": "integer", "minimum": 0 }
+      },
+      "$comment": "Named per_node_user, not per_user. Capping across nodes requires an identifier I1 forbids; this is enforceable within one node only, and the name says so."
+    },
+    "flight": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "start_at": { "type": "string", "format": "date-time" },
+        "end_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "deal_id": { "type": "string", "maxLength": 128, "description": "Present when this line item transacts under a pre-negotiated deal." },
+    "categories": { "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 64 } },
+    "brand_safety": {
+      "type": "object", "additionalProperties": false,
+      "description": "Buyer-side suitability requirements, GARM categories.",
+      "propertyNames": { "enum": ["adult", "arms", "crime", "death_injury", "online_piracy", "hate_speech", "obscenity", "illegal_drugs", "spam_harmful", "terrorism", "debated_social_issue"] },
+      "additionalProperties": { "type": "string", "enum": ["floor", "low", "medium", "high"] }
+    },
+    "creatives": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "creative.json" } },
+    "expires_at": { "type": "string", "format": "date-time", "description": "Inside a bundle: when this entry MUST be discarded." }
+  }
+}

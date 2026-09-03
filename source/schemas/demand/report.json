@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/demand/report.json",
+  "title": "Report",
+  "name": "dev.uap.demand.report",
+  "version": "2026-09-02",
+  "description": "Aggregate delivery and performance for a buyer, under the privacy floors of SPEC.md §6.6: every cell describes at least 50 events and at least the k-anonymity floor of users, with differential-privacy noise on intent-level breakdowns.",
+  "$comment": "Per-turn, per-user and per-conversation reporting is prohibited by the specification and has no representation here. The dimension list is closed for the same reason: a free-form group-by is a re-identification query.",
+  "$defs": {
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scope", "period", "metrics"],
+      "properties": {
+        "scope": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "advertiser_id": { "type": "string", "maxLength": 256 },
+            "campaign_ids": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 128 } },
+            "line_item_ids": { "type": "array", "maxItems": 500, "items": { "type": "string", "maxLength": 128 } }
+          }
+        },
+        "period": {
+          "type": "object", "additionalProperties": false, "required": ["start", "end"],
+          "properties": { "start": { "type": "string", "format": "date" }, "end": { "type": "string", "format": "date" } }
+        },
+        "granularity": { "type": "string", "enum": ["day", "week", "month", "total"], "default": "day" },
+        "dimensions": {
+          "type": "array", "maxItems": 4, "uniqueItems": true,
+          "items": { "type": "string", "enum": ["campaign", "line_item", "creative", "format", "position", "intent_depth1", "intent_depth2", "locale", "country", "trust_tier", "profile", "model_id", "seller_id", "label"] },
+          "$comment": "Closed. intent_depth2 is the narrowest intent breakdown permitted; deeper taxonomy nodes are never reportable. At most four dimensions, so the cell count stays coarse enough for the k floor to hold."
+        },
+        "metrics": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "enum": ["impressions", "viewable_impressions", "clicks", "conversions", "conversion_value_micros", "spend_micros", "ecpm_micros", "ctr", "cvr", "cpa_micros", "win_rate", "ivt_filtered"] }
+        }
+      }
+    },
+    "response": {
+      "type": "object", "additionalProperties": false,
+      "required": ["report_id", "generated_at", "privacy", "rows"],
+      "properties": {
+        "report_id": { "type": "string", "maxLength": 128 },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "privacy": {
+          "type": "object", "additionalProperties": false, "required": ["k_anonymity_floor", "min_cell_events"],
+          "properties": {
+            "k_anonymity_floor": { "type": "integer", "minimum": 1 },
+            "min_cell_events": { "type": "integer", "minimum": 1 },
+            "dp_epsilon": { "type": "number", "minimum": 0, "description": "Privacy budget applied to intent-level cells, per campaign-day. Absent means no noise was applied because no intent dimension was requested." },
+            "suppressed_cells": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["period", "keys", "values"],
+            "properties": {
+              "period": { "type": "string" },
+              "keys": { "type": "object", "additionalProperties": { "type": "string", "maxLength": 128 } },
+              "values": { "type": "object", "additionalProperties": { "type": "number" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

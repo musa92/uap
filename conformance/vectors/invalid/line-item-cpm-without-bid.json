@@ -1,0 +1,5 @@
+{ "line_item_id": "li_1", "status": "active",
+  "advertiser": { "id": "brand.a", "display_name": "A" },
+  "pricing": { "model": "cpm", "currency": "USD" },
+  "creatives": [{ "creative_id": "cr_1", "format": "sponsored_link", "content": { "headline": "H", "brand_name": "A" },
+                  "disclosure": { "label": "Sponsored", "advertiser_name": "A" }, "content_digest": "sha256:5b7e1f9c2a4d8e6b0c3f5a7d9e1b3c5f7a9d1e3b5c7f9a1d3e5b7c9f1a3d5e7b" }] }

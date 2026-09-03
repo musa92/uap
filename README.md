@@ -6,7 +6,7 @@ change the answer or take the conversation off the machine.
 
 [Specification](./SPEC.md) · [Market context](./docs/documentation/market-context.md) · draft-01 · protocol version `2026-09-02` · Apache-2.0
 
-Written by [Musa Gayev](https://github.com/musa92). Design questions and
+Written by [Musa Aghayev](https://github.com/musa92). Design questions and
 critique are welcome in [Discussions](https://github.com/musa92/uap/discussions);
 I read all of them.
 
@@ -194,9 +194,17 @@ The supply service is defined in OpenAPI 3.1 at
 `source/services/supply/rest.openapi.json` and implemented over HTTP in
 `reference/python/uap/server.py`.
 
-Not yet built, and needed before anyone transacts: forecasting, campaign and
-creative-review APIs, the reporting endpoint, the billing lifecycle, and RFC
-9421 transport signing. Two design problems are documented rather than hidden:
+The buy side is implemented at the reference level: campaign and line-item
+management, creative review that resolves URLs against the advertiser's
+verified domains and scans for instruction-shaped text, forecasting as ranges
+with sub-floor breakdowns suppressed, a conversions endpoint that refuses
+serving nodes as a source, and aggregate reporting under a closed dimension
+set with differential-privacy noise on intent breakdowns.
+
+Not yet built: the billing lifecycle (invoicing, disputes, make-goods), RFC
+9421 transport signing, and a production classifier.
+
+Two design problems are documented rather than hidden:
 frequency capping is enforceable only within one node, and Profile L pacing can
 strand node revenue. Both are described in `SPEC.md`.
 
@@ -217,8 +225,8 @@ examples/             end-to-end traces
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md). Nothing in §6, §7, or §9 may be
-relaxed by an extension. Security reports: [SECURITY.md](./SECURITY.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and [GOVERNANCE.md](./GOVERNANCE.md).
+Nothing in §6, §7, or §9 may be relaxed by an extension. Security reports: [SECURITY.md](./SECURITY.md).
 
 ## License
 

@@ -6,3 +6,5 @@ venv/
 site/
 *.egg-info/
 .DS_Store
+site/
+node_modules/

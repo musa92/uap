@@ -1,0 +1,6 @@
+{
+  "event_id": "evt_7c1d9e", "click_id": "ck_a91f3b2e", "event_type": "purchase", "occurred_at": "2026-09-03T11:42:10Z",
+  "value": { "amount_micros": 180000000, "currency": "USD" },
+  "source": { "kind": "ucp_checkout", "reference": "ucp:session:8f2a" },
+  "signature": { "kid": "acme-ed25519-01", "alg": "EdDSA", "value": "3q2-7w" }
+}

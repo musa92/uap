@@ -20,15 +20,35 @@ from typing import Any
 MAX_DEPTH = 8
 MAX_TERMS = 64
 
-__all__ = ["evaluate", "validate", "PredicateError"]
+__all__ = ["evaluate", "compile_predicate", "prepare", "validate", "PredicateError"]
 
 
 class PredicateError(ValueError):
     """Raised by validate() for a predicate that must be rejected before use."""
 
 
-def _intent_ids(signal: dict) -> set[str]:
+def _intent_ids(signal: dict) -> set:
+    """Intent ids as a set, using the prepared form when one is present.
+
+    Rebuilt per call otherwise. A predicate typically references intents two or
+    three times, and a bundle holds thousands of predicates, so the rebuild is
+    the single hottest allocation in the evaluator.
+    """
+    cached = signal.get("_intent_set")
+    if cached is not None:
+        return cached
     return {i.get("id") for i in signal.get("intents") or [] if isinstance(i, dict)}
+
+
+def prepare(signal: dict) -> dict:
+    """Precompute the derived views a compiled predicate reads.
+
+    Returns a shallow copy; the caller's signal is not mutated. Call once per
+    turn, before evaluating a bundle against it.
+    """
+    return {**signal,
+            "_intent_set": {i.get("id") for i in signal.get("intents") or []
+                            if isinstance(i, dict)}}
 
 
 def _confidence(signal: dict, intent_id: str) -> float | None:
@@ -124,3 +144,91 @@ def validate(predicate: Any) -> None:
         raise PredicateError(f"predicate depth {d} exceeds {MAX_DEPTH}")
     if t > MAX_TERMS:
         raise PredicateError(f"predicate has {t} terms, exceeds {MAX_TERMS}")
+
+
+# ---------------------------------------------------------------------------
+# Compiled form
+# ---------------------------------------------------------------------------
+#
+# A bundle is fetched hourly and evaluated on every turn, so the dispatch cost —
+# unpacking a dict, string-comparing the operator, recursing — is paid millions
+# of times for a structure that never changes. Compiling each predicate once
+# into a closure tree moves that work to bundle load, which is where a
+# conventional ad server does it too.
+#
+# The compiled form is semantically identical to evaluate(), including its
+# fail-closed behaviour: `test_compiled_matches_interpreted` asserts that on
+# every predicate and signal the property tests can generate.
+
+
+def _compile_term(op, arg):
+    """Return a closure for one leaf term, resolving the operator once."""
+    if op == "intent_any" and isinstance(arg, list):
+        want = frozenset(arg)
+        return lambda s: bool(_intent_ids(s) & want)
+    if op == "intent_all" and isinstance(arg, list):
+        want = frozenset(arg)
+        return lambda s: want <= _intent_ids(s)
+    if op == "commercial_intent_gte" and isinstance(arg, (int, float)):
+        return lambda s: isinstance(s.get("commercial_intent"), (int, float)) \
+            and s["commercial_intent"] >= arg
+    if op == "locale_any" and isinstance(arg, list):
+        want = frozenset(arg)
+        return lambda s: s.get("locale") in want
+    if op == "surface_any" and isinstance(arg, list):
+        want = frozenset(arg)
+        return lambda s: s.get("surface_hint") in want
+    if op == "format_any" and isinstance(arg, list):
+        want = frozenset(arg)
+        return lambda s: s.get("_format") in want
+    if op == "geo_any" and isinstance(arg, list):
+        want = frozenset(arg)
+        return lambda s: isinstance(s.get("geo"), dict) and s["geo"].get("value") in want
+    if op == "turn_bucket_any" and isinstance(arg, list):
+        want = frozenset(arg)
+        return lambda s: isinstance(s.get("turn"), dict) \
+            and s["turn"].get("index_bucket") in want
+    # Uncommon or awkward to specialise: fall back to the interpreter, which
+    # keeps one definition of the semantics rather than two.
+    return lambda s: _term(op, arg, s)
+
+
+def compile_predicate(predicate, _depth: int = 0):
+    """Compile a predicate into a callable taking a signal and returning bool.
+
+    Fails closed exactly as evaluate() does: an over-deep, malformed or unknown
+    construct compiles to a closure that always returns False.
+    """
+    if _depth > MAX_DEPTH or not isinstance(predicate, dict) or len(predicate) != 1:
+        return lambda s: False
+    (op, arg), = predicate.items()
+
+    if op == "all":
+        if not isinstance(arg, list):
+            return lambda s: False
+        parts = [compile_predicate(p, _depth + 1) for p in arg]
+        if not parts:
+            return lambda s: True
+
+        def _all(s, _parts=parts):
+            for f in _parts:
+                if not f(s):
+                    return False
+            return True
+        return _all
+    if op == "any":
+        if not isinstance(arg, list):
+            return lambda s: False
+        parts = [compile_predicate(p, _depth + 1) for p in arg]
+
+        def _any(s, _parts=parts):
+            for f in _parts:
+                if f(s):
+                    return True
+            return False
+        return _any
+    if op == "not":
+        inner = compile_predicate(arg, _depth + 1)
+        return lambda s: not inner(s)
+
+    return _compile_term(op, arg)

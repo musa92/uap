@@ -1,0 +1,801 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "UAP Demand Service",
+    "version": "2026-09-02",
+    "summary": "The buy side: campaigns, creatives, forecasts, conversions and reporting.",
+    "description": "What an advertiser, agency or DSP integrates against. Deliberately shaped like the buying platforms agencies already use \u2014 advertiser, campaign, line item, creative \u2014 so existing tooling maps onto it.\n\nThree things differ from a conventional platform API and are stated up front. There is no audience object, because no cross-session identifier exists (SPEC.md \u00a76.1). Reporting is aggregate under a published k-anonymity floor and never per-user. And a creative is structured data, never markup.",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://uax.example.com"
+    }
+  ],
+  "tags": [
+    {
+      "name": "campaigns"
+    },
+    {
+      "name": "line-items"
+    },
+    {
+      "name": "creatives"
+    },
+    {
+      "name": "forecast"
+    },
+    {
+      "name": "conversions"
+    },
+    {
+      "name": "reports"
+    },
+    {
+      "name": "bidding"
+    }
+  ],
+  "paths": {
+    "/uap/v1/advertisers/{advertiser_id}/campaigns": {
+      "get": {
+        "tags": [
+          "campaigns"
+        ],
+        "operationId": "listCampaigns",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AdvertiserId"
+          },
+          {
+            "$ref": "#/components/parameters/Status"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaigns.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignPage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "campaigns"
+        ],
+        "operationId": "createCampaign",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AdvertiserId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/demand/campaign.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/campaign.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "402": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/uap/v1/campaigns/{campaign_id}": {
+      "get": {
+        "tags": [
+          "campaigns"
+        ],
+        "operationId": "getCampaign",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/campaign.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "campaigns"
+        ],
+        "operationId": "updateCampaign",
+        "description": "Partial update. Budget may only increase while active; decreasing it requires pausing first, so a running auction never references a budget that has vanished underneath it.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/campaign.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/uap/v1/campaigns/{campaign_id}:pause": {
+      "post": {
+        "tags": [
+          "campaigns"
+        ],
+        "operationId": "pauseCampaign",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paused. Takes effect at the next bundle issue for Profile L supply, immediately for hosted."
+          }
+        }
+      }
+    },
+    "/uap/v1/campaigns/{campaign_id}:resume": {
+      "post": {
+        "tags": [
+          "campaigns"
+        ],
+        "operationId": "resumeCampaign",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumed."
+          }
+        }
+      }
+    },
+    "/uap/v1/campaigns/{campaign_id}/line-items": {
+      "post": {
+        "tags": [
+          "line-items"
+        ],
+        "operationId": "createLineItem",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/demand/line_item.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created in `draft`; moves to `in_review` when a creative is submitted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/line_item.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/uap/v1/line-items/{line_item_id}": {
+      "get": {
+        "tags": [
+          "line-items"
+        ],
+        "operationId": "getLineItem",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LineItemId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Line item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/line_item.json"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "line-items"
+        ],
+        "operationId": "updateLineItem",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LineItemId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated. A targeting change re-enters review; a bid change does not."
+          }
+        }
+      }
+    },
+    "/uap/v1/line-items/{line_item_id}/creatives": {
+      "post": {
+        "tags": [
+          "creatives"
+        ],
+        "operationId": "submitCreative",
+        "description": "Submit for policy review. The exchange resolves every action URL, checks each against the advertiser's /.well-known/uap-brand verified domains, scans text for instruction-shaped content (SPEC.md \u00a713), and computes content_digest. Review is asynchronous; poll or subscribe.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LineItemId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/demand/creative.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted for review.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/uap/v1/creatives/{creative_id}/review": {
+      "get": {
+        "tags": [
+          "creatives"
+        ],
+        "operationId": "getCreativeReview",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CreativeId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current review state with itemised reasons on rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/uap/v1/forecast": {
+      "post": {
+        "tags": [
+          "forecast"
+        ],
+        "operationId": "forecast",
+        "description": "Available inventory and expected delivery for a proposed line item. Ranges, never points; cells below the k-anonymity floor are suppressed and listed.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UapAgent"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/demand/forecast.json#/$defs/request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Forecast.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/forecast.json#/$defs/response"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/uap/v1/conversions": {
+      "post": {
+        "tags": [
+          "conversions"
+        ],
+        "operationId": "reportConversions",
+        "description": "Server-to-server conversion events, batched. Accepted only from an enrolled advertiser key or by AP2 mandate reference; a serving node calling this endpoint receives 403.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UapAgent"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "events"
+                ],
+                "properties": {
+                  "events": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "items": {
+                      "$ref": "https://uap.dev/schemas/demand/conversion.json"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-event acceptance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversionReceipt"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/uap/v1/reports": {
+      "post": {
+        "tags": [
+          "reports"
+        ],
+        "operationId": "runReport",
+        "description": "Aggregate reporting under SPEC.md \u00a76.6. Dimensions are a closed set of at most four; cells under 50 events or under the k floor are suppressed; intent-level cells carry differential-privacy noise, with the epsilon stated in the response.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UapAgent"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/demand/report.json#/$defs/request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/report.json#/$defs/response"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/uap/v1/bid": {
+      "post": {
+        "tags": [
+          "bidding"
+        ],
+        "operationId": "bid",
+        "description": "Implemented by a demand agent, called by the exchange. Real-time path for hosted decisioning only; Profile L supply is reached by shipping line items, not by bidding. Must respond within the request's auction.timeout_ms or is treated as no-bid.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/supply/ad_request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bids, possibly empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/demand/bid_response.json"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No bid."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://uax.example.com/oauth/token",
+            "scopes": {
+              "uap.campaign": "Manage campaigns and line items",
+              "uap.creative": "Submit creatives",
+              "uap.forecast": "Run forecasts",
+              "uap.conversion": "Report conversions",
+              "uap.report": "Run reports"
+            }
+          }
+        }
+      },
+      "httpMessageSignature": {
+        "type": "http",
+        "scheme": "signature",
+        "description": "RFC 9421, required on /conversions."
+      }
+    },
+    "parameters": {
+      "AdvertiserId": {
+        "name": "advertiser_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "CampaignId": {
+        "name": "campaign_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "LineItemId": {
+        "name": "line_item_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "CreativeId": {
+        "name": "creative_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Status": {
+        "name": "status",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Opaque; from a previous page's next_cursor."
+      },
+      "UapAgent": {
+        "name": "UAP-Agent",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "24 hour replay window."
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC 9457 problem document.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "type",
+                "title",
+                "status",
+                "code"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UAP_UNSUPPORTED_VERSION",
+                    "UAP_SIGNATURE_INVALID",
+                    "UAP_KEY_NOT_ENROLLED",
+                    "UAP_ROLE_FORBIDDEN",
+                    "UAP_MANDATE_REQUIRED",
+                    "UAP_NO_SERVABLE_LINE_ITEMS",
+                    "UAP_REPORT_DIMENSIONS",
+                    "UAP_K_ANON_FLOOR",
+                    "UAP_SIGNAL_MALFORMED"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "retryable": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "CampaignPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "https://uap.dev/schemas/demand/campaign.json"
+            }
+          },
+          "next_cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "ReviewStatus": {
+        "type": "object",
+        "required": [
+          "creative_id",
+          "status"
+        ],
+        "properties": {
+          "creative_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
+          },
+          "policy_version": {
+            "type": "string"
+          },
+          "content_digest": {
+            "type": "string"
+          },
+          "rejection_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "url_not_verified_domain",
+                "redirect_chain_changed",
+                "instruction_shaped_text",
+                "markup_in_field",
+                "blocked_category",
+                "disclosure_missing",
+                "asset_digest_mismatch",
+                "length_exceeded"
+              ]
+            }
+          },
+          "appeal_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "ConversionReceipt": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "rejected"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "integer"
+          },
+          "rejected": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "event_id": {
+                  "type": "string"
+                },
+                "accepted": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "duplicate",
+                    "unknown_click_id",
+                    "outside_window",
+                    "unenrolled_source",
+                    "signature_invalid"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2": []
+    }
+  ]
+}

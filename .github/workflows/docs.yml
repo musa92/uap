@@ -1,0 +1,49 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install mkdocs-material pymdown-extensions
+      - name: Generated reference must match the schemas
+        run: python3 scripts/gen_schema_docs.py --check
+      - name: Build site, failing on any warning
+        run: mkdocs build --strict
+      - name: Publish schemas at their $id paths
+        # $id is https://uap.dev/schemas/<path>; the site root maps to uap.dev,
+        # so copying source/schemas to site/schemas makes every $ref resolvable.
+        run: |
+          mkdir -p site/schemas
+          cp -R source/schemas/. site/schemas/
+          cp -R source/taxonomy site/taxonomy
+          cp -R source/services site/services
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

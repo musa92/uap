@@ -1,0 +1,10 @@
+# Named protocols, standards bodies and adjacent specifications.
+# Spelled as their own publishers spell them.
+
+uap
+ucp
+adcp
+aamp
+openrtb
+ortb
+openrpc

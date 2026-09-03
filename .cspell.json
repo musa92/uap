@@ -1,17 +1,114 @@
 {
   "version": "0.2",
   "language": "en-GB,en-US",
+  "caseSensitive": true,
   "dictionaryDefinitions": [
-    { "name": "uap-terms", "path": "./.cspell/custom-words.txt", "addWords": true }
+    {
+      "name": "uap-adtech",
+      "path": "./.cspell/dictionaries/adtech.txt",
+      "addWords": false
+    },
+    {
+      "name": "uap-crypto",
+      "path": "./.cspell/dictionaries/cryptography.txt",
+      "addWords": false
+    },
+    {
+      "name": "uap-protocols",
+      "path": "./.cspell/dictionaries/protocols.txt",
+      "addWords": false
+    },
+    {
+      "name": "uap-inference",
+      "path": "./.cspell/dictionaries/inference.txt",
+      "addWords": false
+    },
+    {
+      "name": "uap-project",
+      "path": "./.cspell/dictionaries/project.txt",
+      "addWords": false
+    },
+    {
+      "name": "uap-nouns",
+      "path": "./.cspell/dictionaries/proper-nouns.txt",
+      "addWords": false
+    }
   ],
-  "dictionaries": ["uap-terms", "softwareTerms", "typescript", "python", "html"],
+  "dictionaries": [
+    "uap-adtech",
+    "uap-crypto",
+    "uap-protocols",
+    "uap-inference",
+    "uap-project",
+    "uap-nouns",
+    "softwareTerms",
+    "companies",
+    "filetypes",
+    "node",
+    "npm",
+    "python",
+    "typescript",
+    "html",
+    "css",
+    "bash",
+    "fonts",
+    "en_GB"
+  ],
+  "_flagWords": "Terms that fail the build wherever they appear. cspell matches these case-insensitively, so a wrong CASING cannot be listed here \u2014 flagging 'adsense' would also reject 'AdSense'. Casing is enforced instead by caseSensitive:true plus the correct form in a dictionary. Only spellings that are wrong in every casing belong in this list.",
+  "flagWords": [
+    "Gayev",
+    "AdSence",
+    "psuedo",
+    "recieve",
+    "seperate",
+    "occured",
+    "existant",
+    "compatability",
+    "dependancy",
+    "occurence",
+    "publically"
+  ],
   "ignorePaths": [
-    "LICENSE", ".git/**", "**/node_modules/**", "**/__pycache__/**",
-    "conformance/vectors/**", "source/taxonomy/**"
+    "LICENSE",
+    "NOTICE",
+    ".git/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "conformance/vectors/**",
+    "source/taxonomy/**",
+    ".cspell/flagged.txt",
+    "scripts/check_terminology.py",
+    "site/**"
   ],
+  "_ignoreRegExp": "Digests, keys, base64 and URLs are data, not prose. Spell-checking them produces noise that trains reviewers to ignore the check.",
   "ignoreRegExpList": [
-    "sha256:[0-9a-f]+", "sha384:[0-9a-f]+", "sha512:[0-9a-f]+",
-    "\\b[0-9a-f]{16,}\\b", "https?://[^\\s)\"']+"
+    "sha(256|384|512):[0-9a-f]+",
+    "\\b[0-9a-f]{16,}\\b",
+    "https?://[^\\s)\"'<>]+",
+    "\\b[A-Za-z0-9_-]{40,}\\b",
+    "`[^`]*`"
   ],
-  "allowCompoundWords": true
+  "_overrides": "Sensitive-category stems are deliberate prefixes for substring matching, not truncated words. Scoped to the file that defines them rather than whitelisted repository-wide.",
+  "overrides": [
+    {
+      "filename": "reference/python/uap/node.py",
+      "words": [
+        "pregnan",
+        "contracept",
+        "diagnos",
+        "depress",
+        "foreclos"
+      ]
+    },
+    {
+      "filename": "**/*.json",
+      "ignoreRegExpList": [
+        "\"\\$id\"\\s*:\\s*\"[^\"]*\"",
+        "\"pattern\"\\s*:\\s*\"[^\"]*\""
+      ]
+    }
+  ],
+  "allowCompoundWords": false,
+  "_ignorePaths": "Two files deliberately contain misspellings as data: the flagged-word list and the terminology checker's rule table. Spell-checking them would fail the build on their entire purpose."
 }

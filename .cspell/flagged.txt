@@ -1,0 +1,26 @@
+# Always wrong. cspell fails the build on any of these, even in a comment.
+#
+# Two kinds live here: misspellings of terms this project uses constantly,
+# where an allowlist would silently accept both forms; and forms that were
+# actually wrong in this repository at some point, kept so they cannot return.
+
+# Was whitelisted in an earlier config. The author's name is Aghayev.
+Gayev
+
+# Never a valid casing of AdSense.
+AdSence
+
+# NOTE ON CASING. Wrong casings are not listed here. cspell matches flagWords
+# case-insensitively, so flagging "adsense" would also reject "AdSense". Casing
+# is enforced by caseSensitive:true in .cspell.json plus the correct form in a
+# dictionary: AdSense, OpenRTB, Ed25519 and EdDSA are listed, so any other
+# casing fails as an unknown word.
+
+# Common misspellings that a technical reviewer should never have to catch.
+psuedo
+recieve
+seperate
+occured
+existant
+compatability
+dependancy

@@ -10,7 +10,7 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timezone
 
-from . import auction, integrity
+from . import auction, integrity, predicate
 from .nonce import derive_local_nonce
 from .crypto import SigningKey, sign_object, verify_object, KeyRing
 
@@ -131,6 +131,7 @@ class Node:
         self.steward_id = steward_id
         self.accept_unverified_classifier = accept_unverified_classifier
         self.bundle: dict | None = None
+        self._compiled: dict[str, object] = {}
         self._frequency: dict[str, int] = {}
         self._pacing: dict[str, int] = {}
 
@@ -142,7 +143,23 @@ class Node:
             raise ValueError(f"bundle signature invalid: {reason}")
         if bundle.get("expires_at", "") < _iso():
             raise ValueError("UAP_BUNDLE_EXPIRED")
+
+        # Compile targeting once per bundle rather than once per turn, and
+        # reject an over-large predicate here rather than at serve time. The
+        # signed bundle is not mutated; compiled forms live beside it.
+        compiled = {}
+        for item in bundle.get("line_items") or []:
+            targeting = item.get("targeting")
+            if targeting is None:
+                continue
+            try:
+                predicate.validate(targeting)
+            except predicate.PredicateError:
+                continue          # fails closed: no matcher means never matches
+            compiled[item.get("line_item_id")] = predicate.compile_predicate(targeting)
+
         self.bundle = bundle
+        self._compiled = compiled
 
     def decide_local(self, signal: dict, placement: dict, *, steward_policy=None):
         """Run the auction locally. Zero network calls.
@@ -159,6 +176,7 @@ class Node:
             steward_policy=steward_policy,
             floor_cpm_micros=self.bundle.get("floor_cpm_micros", 0),
             frequency_state=self._frequency, pacing_state=self._pacing,
+            compiled=self._compiled,
         )
 
     def may_monetise(self, signal: dict) -> bool:

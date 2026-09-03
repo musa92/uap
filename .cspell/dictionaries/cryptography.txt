@@ -1,0 +1,14 @@
+# Cryptography, encoding and transport vocabulary.
+# Algorithm and format names as spelled by their defining RFC or registry.
+# Case matters: Ed25519 and EdDSA are proper names, not acronyms to lowercase.
+
+Ed25519
+EdDSA
+jwks
+jcs
+okp
+kid
+base64url
+unpadded
+invertibility
+nonces

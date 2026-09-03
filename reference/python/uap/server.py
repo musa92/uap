@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .canonical import canonicalize
 from .exchange import Exchange
+from .buyside import BuySide
 
 __all__ = ["make_server", "serve"]
 
@@ -93,6 +94,21 @@ class _Handler(BaseHTTPRequestHandler):
             if not self._require_agent():
                 return
             return self._send(200, ux.settlement_record(m.group(1)))
+        if (m := re.fullmatch(r"/uap/v1/campaigns/([^/:]+)", path)):
+            c = self.buyside.campaigns.get(m.group(1))
+            return self._send(200, c) if c else self._fail(404, "UAP_UNSUPPORTED_VERSION", "No such campaign")
+        if (m := re.fullmatch(r"/uap/v1/line-items/([^/:]+)", path)):
+            li = self.buyside.line_items.get(m.group(1))
+            return self._send(200, li) if li else self._fail(404, "UAP_UNSUPPORTED_VERSION", "No such line item")
+        if (m := re.fullmatch(r"/uap/v1/creatives/([^/]+)/review", path)):
+            cr = self.buyside.creatives.get(m.group(1))
+            if not cr:
+                return self._fail(404, "UAP_UNSUPPORTED_VERSION", "No such creative")
+            return self._send(200, {"creative_id": cr["creative_id"], **cr["review"],
+                                    "content_digest": cr["content_digest"]})
+        if (m := re.fullmatch(r"/uap/v1/advertisers/([^/]+)/campaigns", path)):
+            items = [c for c in self.buyside.campaigns.values() if c.get("advertiser_id") == m.group(1)]
+            return self._send(200, {"items": items})
         if path == "/openapi.json":
             return self._send(200, {"note": "served from source/services/supply/rest.openapi.json"})
         return self._fail(404, "UAP_UNSUPPORTED_VERSION", "No such endpoint", path)
@@ -127,6 +143,40 @@ class _Handler(BaseHTTPRequestHandler):
             results = [ux.verify_receipt(r).to_json() for r in receipts]
             return self._send(200, {"results": results})
 
+        role = re.search(r"role=([a-z_]+)", self.headers.get("UAP-Agent", ""))
+        role = role.group(1) if role else ""
+        bs = self.buyside
+        try:
+            if (m := re.fullmatch(r"/uap/v1/advertisers/([^/]+)/campaigns", path)):
+                return self._send(201, bs.create_campaign({**(body or {}), "advertiser_id": m.group(1)}))
+            if (m := re.fullmatch(r"/uap/v1/campaigns/([^/:]+):(pause|resume)", path)):
+                return self._send(200, bs.set_campaign_status(
+                    m.group(1), "paused" if m.group(2) == "pause" else "active"))
+            if (m := re.fullmatch(r"/uap/v1/campaigns/([^/:]+)/line-items", path)):
+                return self._send(201, bs.create_line_item(m.group(1), body or {}))
+            if (m := re.fullmatch(r"/uap/v1/line-items/([^/]+)/creatives", path)):
+                cr = bs.submit_creative(m.group(1), body or {})
+                return self._send(202, {"creative_id": cr["creative_id"], **cr["review"],
+                                        "content_digest": cr["content_digest"]})
+            if path == "/uap/v1/forecast":
+                return self._send(200, bs.forecast(body or {}))
+            if path == "/uap/v1/conversions":
+                events = (body or {}).get("events") or []
+                results = [bs.report_conversion(e, caller_role=role) for e in events]
+                if role == "serving_node":
+                    return self._fail(403, "UAP_ROLE_FORBIDDEN",
+                                      "A serving node cannot report conversions", "SPEC.md §9.2")
+                return self._send(200, {"accepted": sum(r["accepted"] for r in results),
+                                        "rejected": sum(not r["accepted"] for r in results),
+                                        "results": results})
+            if path == "/uap/v1/reports":
+                return self._send(200, bs.run_report(body or {}))
+        except KeyError as exc:
+            return self._fail(404, "UAP_UNSUPPORTED_VERSION", "Not found", str(exc))
+        except ValueError as exc:
+            code = str(exc).split(":")[0] if str(exc).startswith("UAP_") else "UAP_SIGNAL_MALFORMED"
+            return self._fail(400, code, "Request rejected", str(exc))
+
         if path == "/uap/v1/events":
             kind = (body or {}).get("type")
             if kind not in ("click", "dismiss", "expand"):
@@ -137,9 +187,11 @@ class _Handler(BaseHTTPRequestHandler):
         return self._fail(404, "UAP_UNSUPPORTED_VERSION", "No such endpoint", path)
 
 
-def make_server(exchange: Exchange, host: str = "127.0.0.1", port: int = 8787, verbose: bool = False):
+def make_server(exchange: Exchange, host: str = "127.0.0.1", port: int = 8787, verbose: bool = False,
+                buyside: BuySide | None = None):
     handler = type("_Bound", (_Handler,), {
-        "exchange": exchange, "base_url": f"http://{host}:{port}"})
+        "exchange": exchange, "base_url": f"http://{host}:{port}",
+        "buyside": buyside or BuySide(exchange)})
     server = ThreadingHTTPServer((host, port), handler)
     server.verbose = verbose
     return server

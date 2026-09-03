@@ -183,12 +183,15 @@ def check_vectors(registry, r: Results) -> None:
             r.fail("vectors", f"{vec['file']}: vector file missing")
             continue
         schema_uri = BASE + vec["schema"]
+        doc_uri = schema_uri.split("#")[0]
         try:
-            schema = registry.get_or_retrieve(schema_uri).value.contents
+            registry.get_or_retrieve(doc_uri)
         except Exception:
             r.fail("vectors", f"{vec['file']}: schema {vec['schema']} not found")
             continue
-        validator = jsonschema.Draft202012Validator(schema, registry=registry)
+        # Validate through a $ref to the (possibly fragment) URI so relative
+        # references inside a $defs subschema resolve against its own document.
+        validator = jsonschema.Draft202012Validator({"$ref": schema_uri}, registry=registry)
         errors = list(validator.iter_errors(json.loads(vpath.read_text())))
         expect_valid = vec["expect"] == "valid"
         if expect_valid and errors:

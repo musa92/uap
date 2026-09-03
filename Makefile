@@ -2,23 +2,45 @@
 
 PY := python3
 
-.PHONY: test schemas unit links demo serve clean help
+.PHONY: test schemas unit links terms spelling markdown lint docs docs-check docs-serve demo serve clean help
 
 help:
-	@echo "make test     schemas, refs, invariants, vectors, links, unit tests"
-	@echo "make schemas  schema and conformance checks only"
-	@echo "make unit     reference implementation tests only"
-	@echo "make links    relative markdown links and anchors"
-	@echo "make demo     end-to-end Profile L flow, in process"
-	@echo "make serve    run the reference exchange on localhost:8787"
+	@echo "make test      everything CI runs"
+	@echo "make schemas   schemas, refs, invariants, conformance vectors"
+	@echo "make unit      reference implementation tests"
+	@echo "make lint      spelling, terminology, markdown, links"
+	@echo "make docs      regenerate the schema reference from source/schemas"
+	@echo "make docs-serve  run the documentation site locally"
+	@echo "make demo      end-to-end flow, in process then over HTTP"
+	@echo "make serve     reference exchange on localhost:8787"
 
-test: schemas links unit
+test: schemas lint docs-check unit
 
 schemas:
 	@$(PY) scripts/validate.py
 
+lint: spelling terms markdown links
+
+spelling:
+	@npm run --silent lint:spelling
+
+terms:
+	@$(PY) scripts/check_terminology.py
+
+markdown:
+	@npm run --silent lint:markdown
+
 links:
 	@$(PY) scripts/check_links.py
+
+docs:
+	@$(PY) scripts/gen_schema_docs.py
+
+docs-check:
+	@$(PY) scripts/gen_schema_docs.py --check
+
+docs-serve: docs
+	@mkdocs serve
 
 unit:
 	@cd reference/python && $(PY) -m pytest -q

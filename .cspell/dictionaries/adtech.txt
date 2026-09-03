@@ -1,0 +1,64 @@
+# Advertising technology vocabulary.
+# Terms defined by IAB Tech Lab, the MRC, or in general programmatic use.
+# A term belongs here only if it appears in a published industry specification.
+# If you cannot cite where it is defined, it is probably a typo.
+
+# OpenRTB 2.6 field names
+adm
+badv
+bapp
+bcat
+bidfloor
+bidfloorcur
+bseat
+cattax
+dooh
+eids
+ifa
+ipservice
+pchain
+plcmttype
+rwdd
+schain
+ssai
+tagid
+wadomain
+wseat
+
+# Pricing and performance
+cpa
+cpc
+cpm
+ecpm
+cvr
+mille
+remnant
+
+# Supply chain and consent frameworks
+adstxt
+coppa
+gpp
+tcf
+datatopub
+pubrender
+
+# Measurement and fraud
+givt
+sivt
+garm
+
+# Ecosystem
+adtech
+appnexus
+prebid
+pmp
+sponsorships
+
+# Correct casings. Listed so that caseSensitive:true rejects the wrong ones
+# (adsense, openRTB) without flagWords having to, which would reject both.
+AdSense
+OpenRTB
+viewability
+viewable
+gdpr
+brandlift

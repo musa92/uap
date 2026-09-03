@@ -1,0 +1,10 @@
+{
+  "forecast_id": "fc_01J9X3", "generated_at": "2026-09-03T10:00:00Z", "valid_until": "2026-09-03T22:00:00Z",
+  "matched": { "impressions_per_day": { "low": 180000, "high": 260000 }, "unique_cohort_estimate": 410,
+               "by_trust_tier": { "1": { "low": 120000, "high": 170000 }, "2": { "low": 60000, "high": 90000 } },
+               "by_profile": { "uap.decision.local": { "low": 140000, "high": 200000 }, "uap.decision.hosted": { "low": 40000, "high": 60000 } } },
+  "estimate": { "win_rate": 0.42, "impressions": { "low": 75000, "high": 110000 }, "clicks": { "low": 1500, "high": 2600 },
+                "spend_micros": { "low": 1350000000, "high": 2340000000 },
+                "clearing_cpm_micros": { "low": 14000000, "high": 22000000 }, "bid_to_win_cpm_micros": 26000000 },
+  "suppressed": ["by_profile.uap.decision.hybrid", "by_trust_tier.0"]
+}

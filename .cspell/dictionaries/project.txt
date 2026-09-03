@@ -1,0 +1,41 @@
+# Identifiers that exist only in this repository: code symbols, example values
+# and coined terms. Anything here should be greppable in the source tree.
+
+kanon
+jpath
+vpath
+chatcmpl
+yourco
+globex
+hotelio
+undisbursed
+unevidenced
+waivable
+pyo
+
+# Adjectives coined in the specification for protocol properties.
+replayable
+retryable
+crawlable
+chokepoint
+supplychain
+selfhosted
+kimi
+metaschema
+overclaimed
+testpaths
+ecmascript
+domainless
+Domainless
+unrepresentable
+preds
+interp
+canonicalizer
+canonicalize
+parseable
+pymdownx
+superfences
+conds
+buyside
+subschema
+signup

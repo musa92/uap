@@ -1,0 +1,97 @@
+site_name: Universal Ads Protocol
+site_url: https://uap.dev/
+site_description: >
+  An open protocol for advertising on LLM inference, built so the ad cannot
+  change the answer and the conversation never leaves the machine.
+repo_url: https://github.com/musa92/uap
+repo_name: musa92/uap
+edit_uri: edit/main/docs/
+copyright: Apache-2.0 · specification text CC-BY-4.0
+
+docs_dir: docs
+site_dir: site
+
+nav:
+  - Overview:
+      - Home: index.md
+      - Market context: documentation/market-context.md
+      - Integration guide: documentation/integration.md
+      - Roadmap: documentation/roadmap.md
+  - Specification:
+      - Full text: specification/index.md
+  - Schema reference:
+      - Index: reference/index.md
+      - Protocol metadata:
+          - UAP Metadata: reference/uap.md
+          - Capability: reference/capability.md
+          - Service: reference/service.md
+      - Supply side:
+          - AdRequest: reference/ad_request.md
+          - Placement: reference/placement.md
+          - ContextSignal: reference/context_signal.md
+          - ImpressionReceipt: reference/impression_receipt.md
+          - Sellers declaration: reference/sellers.md
+      - Demand side:
+          - Campaign: reference/campaign.md
+          - LineItem: reference/line_item.md
+          - Creative: reference/creative.md
+          - Forecast: reference/forecast.md
+          - ConversionEvent: reference/conversion.md
+          - Report: reference/report.md
+          - BidResponse: reference/bid_response.md
+      - Settlement:
+          - Payout handler: reference/payout_handler.md
+      - Common types:
+          - SupplyChain: reference/supply_chain.md
+          - Viewability: reference/viewability.md
+          - Integrity assertion: reference/integrity_assertion.md
+          - Regulatory signals: reference/regs.md
+          - Deal: reference/deal.md
+          - Signature: reference/signature.md
+          - Digest: reference/digest.md
+          - CPM: reference/cpm.md
+          - Micros: reference/micros.md
+          - Currency: reference/currency.md
+          - Reverse domain name: reference/reverse_domain_name.md
+  - Contributing:
+      - Style guide: documentation/style.md
+      - Governance: governance.md
+      - Maintainers: MAINTAINERS.md
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - scheme: default
+      primary: black
+      accent: indigo
+      toggle: { icon: material/brightness-7, name: Dark mode }
+    - scheme: slate
+      primary: black
+      accent: indigo
+      toggle: { icon: material/brightness-4, name: Light mode }
+  font:
+    text: IBM Plex Sans
+    code: IBM Plex Mono
+
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path: [".", docs]
+      check_paths: true
+  - admonition
+  - tables
+  - toc: { permalink: true }
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.details
+
+plugins:
+  - search
+
+strict: true

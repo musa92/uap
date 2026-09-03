@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      lint-tooling:
+        patterns: ["cspell", "markdownlint-cli2"]
+  - package-ecosystem: pip
+    directory: /reference/python
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }

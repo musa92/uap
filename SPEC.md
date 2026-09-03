@@ -750,6 +750,10 @@ Rules:
 - `targeting` is a closed boolean predicate language (Appendix A) over
   `ContextSignal` fields only. It is total, side-effect free, and MUST be
   evaluable in < 1 ms for 10^3 line items. No regex, no callbacks, no network.
+  Implementations SHOULD compile a predicate once when a bundle is loaded rather
+  than interpreting it per turn; the reference implementation measures 0.66 ms
+  compiled against 2.74 ms interpreted for 10^3 line items, and enforces the
+  bound in `tests/test_performance.py`.
 - `pacing.node_share_impressions` is the node's *allocated slice* of the campaign,
   assigned by the exchange. The node MUST NOT exceed it. Over-delivery is
   discarded at settlement, so the incentive is aligned.
@@ -972,6 +976,9 @@ conversion reference.
 | `UAP_SIGNATURE_INVALID` | 401 | RFC 9421 verification failed |
 | `UAP_KEY_NOT_ENROLLED` | 403 | Valid signature, unknown key; treated as tier 0 |
 | `UAP_TIER_INSUFFICIENT` | 403 | Requested pricing model not available at this tier |
+| `UAP_ROLE_FORBIDDEN` | 403 | The acting role may not perform this operation (e.g. a serving node reporting a conversion) |
+| `UAP_MANDATE_REQUIRED` | 402 | A campaign cannot run without an AP2 spend mandate |
+| `UAP_REPORT_DIMENSIONS` | 400 | Report requested a dimension outside the closed set, or more than four |
 | `UAP_MODEL_POLICY_FORBIDS` | 403 | §7.5 steward veto |
 | `UAP_NONCE_SPENT` | 409 | Receipt replay |
 | `UAP_BUNDLE_EXPIRED` | 410 | Stale bundle presented |

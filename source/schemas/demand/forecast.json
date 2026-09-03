@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/demand/forecast.json",
+  "title": "Forecast",
+  "name": "dev.uap.demand.forecast",
+  "version": "2026-09-02",
+  "description": "Available inventory and expected delivery for a proposed line item, before any budget is committed.",
+  "$comment": "The first thing a buyer asks for and the thing draft-01 lacked entirely. Every figure is an aggregate over at least the k-anonymity floor of users; a forecast cell that would describe fewer users is suppressed, not rounded, because a narrow forecast is a targeting oracle.",
+  "$defs": {
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["targeting", "pricing", "flight"],
+      "properties": {
+        "targeting": { "type": "object", "description": "Appendix A predicate." },
+        "pricing": { "$ref": "line_item.json#/properties/pricing" },
+        "flight": { "$ref": "line_item.json#/properties/flight" },
+        "supply": { "$ref": "campaign.json#/properties/supply" },
+        "formats": { "type": "array", "items": { "type": "string", "enum": ["sponsored_link", "sponsored_card", "sponsored_suggestion", "product_offer", "sponsored_action"] } },
+        "frequency_cap": { "$ref": "line_item.json#/properties/frequency_cap" }
+      }
+    },
+    "response": {
+      "type": "object", "additionalProperties": false,
+      "required": ["forecast_id", "generated_at", "valid_until", "matched", "estimate"],
+      "properties": {
+        "forecast_id": { "type": "string", "maxLength": 128 },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "valid_until": { "type": "string", "format": "date-time" },
+        "matched": {
+          "type": "object", "additionalProperties": false,
+          "description": "Inventory the targeting would reach over the flight, regardless of bid.",
+          "properties": {
+            "impressions_per_day": { "$ref": "#/$defs/range" },
+            "unique_cohort_estimate": { "type": "integer", "minimum": 0, "description": "Distinct k-anonymous cohorts, not users." },
+            "by_trust_tier": { "type": "object", "propertyNames": { "enum": ["0", "1", "2"] }, "additionalProperties": { "$ref": "#/$defs/range" } },
+            "by_profile": { "type": "object", "propertyNames": { "enum": ["uap.decision.local", "uap.decision.hosted", "uap.decision.hybrid"] }, "additionalProperties": { "$ref": "#/$defs/range" } }
+          }
+        },
+        "estimate": {
+          "type": "object", "additionalProperties": false,
+          "description": "Expected delivery at the proposed bid, given competing demand.",
+          "properties": {
+            "win_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "impressions": { "$ref": "#/$defs/range" },
+            "clicks": { "$ref": "#/$defs/range" },
+            "spend_micros": { "$ref": "#/$defs/range" },
+            "clearing_cpm_micros": { "$ref": "#/$defs/range", "description": "Where the auction is expected to clear, in micros." },
+            "bid_to_win_cpm_micros": { "$ref": "../common/types/cpm.json", "description": "Bid at which the estimate reaches an 80% win rate." }
+          }
+        },
+        "suppressed": {
+          "type": "array", "items": { "type": "string", "maxLength": 64 },
+          "description": "Breakdowns withheld because they fell below the k-anonymity floor."
+        }
+      }
+    },
+    "range": {
+      "type": "object", "additionalProperties": false, "required": ["low", "high"],
+      "properties": {
+        "low": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 }
+      },
+      "$comment": "Forecasts are ranges, never points. A point estimate implies a precision no forecast has, and buyers plan against the low end."
+    }
+  }
+}

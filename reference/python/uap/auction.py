@@ -85,9 +85,17 @@ def run(line_items: Iterable[dict], signal: dict, placement: dict, *,
         policy: dict | None = None, steward_policy: dict | None = None,
         floor_cpm_micros: int = 0, mechanism: str = "uap.auction.second_price",
         p_ctr: float = 0.01, p_cvr: float = 0.001,
-        frequency_state: dict | None = None, pacing_state: dict | None = None) -> AuctionResult:
-    """Run one auction and return the winner, the clearing price, and the trace."""
+        frequency_state: dict | None = None, pacing_state: dict | None = None,
+        compiled: dict | None = None) -> AuctionResult:
+    """Run one auction and return the winner, the clearing price, and the trace.
+
+    `compiled` maps line_item_id to a compiled targeting predicate. Supplying it
+    moves predicate compilation to bundle load, where it is paid once per hour
+    instead of once per turn; see uap.predicate.compile_predicate.
+    """
     policy = policy or {}
+    compiled = compiled or {}
+    signal = pred.prepare(signal)
     frequency_state = frequency_state or {}
     pacing_state = pacing_state or {}
     floor = max(int(floor_cpm_micros), int(placement.get("floor_cpm_micros") or 0))
@@ -104,11 +112,14 @@ def run(line_items: Iterable[dict], signal: dict, placement: dict, *,
 
         targeting = item.get("targeting")
         if targeting is not None:
-            try:
-                pred.validate(targeting)
-            except pred.PredicateError:
-                trace.append(TraceEntry(lid, ecpm, "eliminated_policy")); continue
-            if not pred.evaluate(targeting, signal):
+            matcher = compiled.get(lid)
+            if matcher is None:
+                try:
+                    pred.validate(targeting)
+                except pred.PredicateError:
+                    trace.append(TraceEntry(lid, ecpm, "eliminated_policy")); continue
+                matcher = pred.compile_predicate(targeting)
+            if not matcher(signal):
                 trace.append(TraceEntry(lid, ecpm, "eliminated_targeting")); continue
 
         cap = item.get("frequency_cap") or {}

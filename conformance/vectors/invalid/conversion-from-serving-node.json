@@ -1,0 +1,2 @@
+{ "event_id": "evt_1", "click_id": "ck_1", "event_type": "purchase", "occurred_at": "2026-09-03T11:42:10Z",
+  "source": { "kind": "serving_node", "reference": "node.selfhosted.example" } }

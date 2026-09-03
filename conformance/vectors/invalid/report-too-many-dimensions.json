@@ -1,0 +1,2 @@
+{ "scope": { "advertiser_id": "brand.acme.example" }, "period": { "start": "2026-09-01", "end": "2026-09-30" },
+  "dimensions": ["campaign", "line_item", "creative", "locale", "country"], "metrics": ["impressions"] }

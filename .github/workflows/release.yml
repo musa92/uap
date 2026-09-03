@@ -1,0 +1,43 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm }
+      - run: pip install 'jsonschema>=4.20' 'referencing>=0.35' pytest 'hypothesis>=6.100'
+      - run: npm ci
+      - name: A release must pass the full gate
+        run: make test
+      - name: Bundle the schemas and vectors for this version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          tar -czf "dist/uap-schemas-${VERSION}.tar.gz" source/schemas source/taxonomy source/services
+          tar -czf "dist/uap-conformance-${VERSION}.tar.gz" conformance
+          cd reference/python && python3 -m pip install --quiet build && python3 -m build --outdir ../../dist
+      - name: Changelog section for this version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" {p=1; next}
+            p && /^## \[/ {exit}
+            p {print}
+          ' CHANGELOG.md > dist/notes.md
+          test -s dist/notes.md || echo "No changelog entry for ${VERSION}." > dist/notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: dist/notes.md
+          files: dist/*
+          generate_release_notes: false
