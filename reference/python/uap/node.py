@@ -160,6 +160,18 @@ class Node:
 
         self.bundle = bundle
         self._compiled = compiled
+        self._slices: dict[str, int] = {}
+
+    def load_allocation(self, allocation: dict) -> None:
+        """Verify and apply the exchange's per-node slices for the loaded bundle."""
+        ok, reason = verify_object(allocation, self.exchange_keys, "bundle")
+        if not ok:
+            raise ValueError(f"allocation signature invalid: {reason}")
+        if self.bundle is None or allocation.get("bundle_id") != self.bundle.get("bundle_id"):
+            raise ValueError("allocation does not match the loaded bundle")
+        if allocation.get("entity_id") != self.entity_id:
+            raise ValueError("allocation issued to a different node")
+        self._slices = dict(allocation.get("slices") or {})
 
     def decide_local(self, signal: dict, placement: dict, *, steward_policy=None):
         """Run the auction locally. Zero network calls.
@@ -171,8 +183,17 @@ class Node:
             return None
         if not self.may_monetise(signal):
             return None
+        # A line item with an allocation is served only inside it; one without
+        # an allocation (uncapped) falls back to any share written in the bundle.
+        items = []
+        for item in self.bundle.get("line_items") or []:
+            lid = item.get("line_item_id")
+            if lid in self._slices:
+                item = {**item, "pacing": {**(item.get("pacing") or {}),
+                                           "node_share_impressions": self._slices[lid]}}
+            items.append(item)
         return auction.run(
-            self.bundle.get("line_items") or [], signal, placement,
+            items, signal, placement,
             steward_policy=steward_policy,
             floor_cpm_micros=self.bundle.get("floor_cpm_micros", 0),
             frequency_state=self._frequency, pacing_state=self._pacing,

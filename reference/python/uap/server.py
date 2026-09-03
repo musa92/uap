@@ -90,6 +90,14 @@ class _Handler(BaseHTTPRequestHandler):
                 return
             formats = (query.get("formats") or [""])[0].split(",") if query.get("formats") else None
             return self._send(200, ux.issue_bundle(formats=[f for f in (formats or []) if f] or None))
+        if path == "/uap/v1/allocations":
+            if not self._require_agent():
+                return
+            entity = re.match(r"\s*([^;]+);", self.headers.get("UAP-Agent", ""))
+            bundle_id = (query.get("bundle_id") or [""])[0]
+            if not entity or bundle_id not in ux._bundles:
+                return self._fail(404, "UAP_BUNDLE_EXPIRED", "No such bundle", bundle_id)
+            return self._send(200, ux.issue_allocation(bundle_id, entity.group(1).strip()))
         if (m := re.fullmatch(r"/uap/v1/settlements/(\d{4}-\d{2}(?:-\d{2})?)", path)):
             if not self._require_agent():
                 return

@@ -34,16 +34,16 @@ Each is a tracked milestone with an issue, not a gap to be discovered later.
 
 ## Open design problems
 
-Documented rather than hidden. Both need a design, not a patch.
+Documented rather than hidden. The remaining one needs a design, not a patch.
 
 **Frequency capping across nodes.** `per_user_per_day` requires an identifier
 stable across sessions, which invariant I1 forbids. Capping works within one
 node today; network-wide capping needs an on-device approach in the shape of
 Protected Audience.
 
-**Local pacing can strand revenue.** Bundles sync hourly, so a node cannot see
-that a campaign exhausted elsewhere and may serve impressions that settle to
-nothing. The allocation model should make over-delivery the exchange's risk.
+**Local pacing stranding revenue** is resolved in draft-02: allocations are
+signed per node, sum to at most the remaining budget, and a node inside its
+slice is always paid.
 
 ## Leaving draft
 

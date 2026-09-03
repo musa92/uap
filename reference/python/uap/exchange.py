@@ -22,6 +22,7 @@ from .supply_chain import verify_chain
 from .canonical import canonicalize
 from .crypto import KeyRing, SigningKey, sign_object, verify_object
 from .nonce import derive_local_nonce
+from .pacing import allocate
 
 __all__ = ["Exchange", "ReceiptVerdict"]
 
@@ -67,8 +68,11 @@ class Exchange:
         self._open_nonces: dict[str, dict] = {}   # hosted profile only
         self._bundles: dict[str, dict] = {}       # bundle_id -> issued bundle
         self._kid_entity: dict[str, str] = {}     # signing kid -> supply entity
+        self._allocations: dict[tuple, int] = {}  # (bundle_id, entity, line_item) -> slice
+        self._spent: dict[str, int] = {}          # line_item_id -> micros settled
         self._spent_nonces: set[str] = set()
         self._delivered: dict[str, int] = {}  # line_item_id -> impressions
+        self._delivered_by: dict[str, int] = {}  # entity_id -> verified impressions
         self._events: list[dict] = []
         self._rejections: list[str] = []
         self._verified_count = 0
@@ -173,6 +177,34 @@ class Exchange:
         signed = sign_object(bundle, self.key, "bundle", created=_iso(_now()))
         self._bundles[bundle["bundle_id"]] = signed
         return signed
+
+    def issue_allocation(self, bundle_id: str, entity_id: str, *,
+                         period_fraction: float = 1 / 24) -> dict:
+        """Sign a per-node allocation against an issued bundle.
+
+        Slices are computed so that, summed across every enrolled node, they
+        cannot exceed each line item's remaining budget. A node serving inside
+        its slice is therefore always paid; over-allocation is the exchange's
+        error and the exchange bears it. The bundle body is unchanged per node.
+        """
+        bundle = self._bundles[bundle_id]
+        history = {e: self._delivered_by.get(e, 0) for e in self.enrolled}
+        slices = {}
+        for item in bundle.get("line_items") or []:
+            lid = item["line_item_id"]
+            budget = (item.get("pacing") or {}).get("budget_micros")
+            if budget is None:
+                continue                              # uncapped line item: no slice needed
+            remaining = max(0, budget - self._spent.get(lid, 0))
+            price = item["pricing"].get("bid_cpm_micros") or self.floor_cpm_micros
+            alloc = allocate(item, history or {entity_id: 0}, remaining_budget_micros=remaining,
+                             expected_price_cpm_micros=price, period_fraction=period_fraction)
+            for e, n in alloc.slices.items():
+                self._allocations[(bundle_id, e, lid)] = n
+            slices[lid] = alloc.slices.get(entity_id, 0)
+        obj = {"bundle_id": bundle_id, "entity_id": entity_id,
+               "issued_at": _iso(_now()), "expires_at": bundle["expires_at"], "slices": slices}
+        return sign_object(obj, self.key, "bundle", created=_iso(_now()))
 
     # -- Profile H: hosted decisioning ------------------------------------
     def decide(self, ad_request: dict) -> dict | None:
@@ -280,7 +312,9 @@ class Exchange:
         if receipt.get("nonce") != expected:
             return None, "nonce does not derive from the declared local_decision"
 
-        share = (item.get("pacing") or {}).get("node_share_impressions")
+        share = self._allocations.get((bundle_id, entity_id, line_item_id))
+        if share is None:
+            share = (item.get("pacing") or {}).get("node_share_impressions")
         if share is not None and index >= share:
             return None, f"UAP_PACING_EXCEEDED: index {index} exceeds allocation {share}"
 
@@ -412,6 +446,8 @@ class Exchange:
         self._delivered[open_nonce["line_item_id"]] = self._delivered.get(open_nonce["line_item_id"], 0) + 1
 
         gross = open_nonce["price_micros"] // 1000  # CPM covers one thousand
+        self._spent[open_nonce["line_item_id"]] = self._spent.get(open_nonce["line_item_id"], 0) + gross
+        self._delivered_by[open_nonce["supply_entity"]] = self._delivered_by.get(open_nonce["supply_entity"], 0) + 1
         splits = self.settle(gross, open_nonce["supply_entity"])
         self._verified_count += 1
         self._period_splits = splits

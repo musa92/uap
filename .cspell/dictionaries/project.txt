@@ -39,3 +39,5 @@ conds
 buyside
 subschema
 signup
+skey
+wsum

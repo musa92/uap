@@ -754,9 +754,21 @@ Rules:
   than interpreting it per turn; the reference implementation measures 0.66 ms
   compiled against 2.74 ms interpreted for 10^3 line items, and enforces the
   bound in `tests/test_performance.py`.
-- `pacing.node_share_impressions` is the node's *allocated slice* of the campaign,
-  assigned by the exchange. The node MUST NOT exceed it. Over-delivery is
-  discarded at settlement, so the incentive is aligned.
+- A node's slice of each line item is carried in a separate signed
+  **Allocation** object, `GET {base_url}/allocations?bundle_id=…`, issued per
+  node against a shared bundle. The bundle body is identical for every node;
+  only the allocation differs, so nothing about a node's audience is
+  inferable from what it fetched.
+- The exchange MUST compute allocations such that, summed across all nodes
+  holding the bundle, `slice × expected price ≤ remaining budget` for every
+  line item at issue time. A node that serves within its slice is therefore
+  **always paid**. Over-allocation is the exchange's error and the exchange
+  bears it; it MUST NOT be recovered from nodes. Unfilled slices return to the
+  pool at the next issue. Draft-01 placed this loss on the node, which could
+  not observe the condition that caused it; that text is withdrawn.
+- A receipt whose `impression_index` reaches the node's slice is rejected with
+  `UAP_PACING_EXCEEDED`. The slice checked is the exchange's own record of
+  what it issued, never a value read from the receipt.
 - Bundles MUST NOT be personalised to a node in a way that would let the exchange
   infer the node's audience from *which* bundle it requested. Bundle variants are
   coarse (locale, format, category) and MUST be served to ≥ `k_anonymity_floor`

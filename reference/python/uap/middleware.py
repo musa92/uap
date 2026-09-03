@@ -71,6 +71,9 @@ class ExchangeClient:
     def decide(self, ad_request: dict, timeout_ms: int = 80):
         return self._call("POST", "/uap/v1/decisions", ad_request, timeout=timeout_ms / 1000)
 
+    def allocation(self, bundle_id: str):
+        return self._call("GET", "/uap/v1/allocations?bundle_id=" + bundle_id)
+
     def receipts(self, receipts: list):
         return self._call("POST", "/uap/v1/receipts:batch", {"receipts": receipts})
 
@@ -117,6 +120,9 @@ class UAPMiddleware:
         try:
             bundle = self.client.bundle(formats=self.placement["format"])
             self.node.load_bundle(bundle)
+            # The slice is what makes every impression inside it billable; a
+            # bundle without one is served only where line items are uncapped.
+            self.node.load_allocation(self.client.allocation(bundle["bundle_id"]))
             return True
         except Exception:
             return False
