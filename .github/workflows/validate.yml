@@ -13,7 +13,7 @@ jobs:
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install 'jsonschema>=4.20' 'referencing>=0.35' pytest 'hypothesis>=6.100'
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - name: Demo runs with no third-party packages installed
         run: python3 reference/python/demo/end_to_end.py
