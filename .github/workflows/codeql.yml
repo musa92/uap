@@ -10,17 +10,26 @@ on:
 permissions:
   security-events: write
   contents: read
+  actions: read
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
     strategy:
+      # One language failing must not cancel the others' results.
+      fail-fast: false
       matrix:
-        language: [python, javascript]
+        # python: the reference implementation. actions: the workflows themselves.
+        # No javascript: the only JS in this repository is lint tooling under
+        # node_modules, which is not source. Listing it makes CodeQL fail with
+        # "no source code seen".
+        language: [python, actions]
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@v5
+      - uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-and-quality
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
