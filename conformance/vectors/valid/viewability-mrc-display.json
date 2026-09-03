@@ -1,0 +1,4 @@
+{ "rendered": true, "standard": "mrc_display", "viewable": true, "method": "intersection_observer",
+  "visible_ms": 3400, "visible_pct": 100, "user_present": true,
+  "ivt": { "classification": "valid", "filter_version": "givt-2026.08" },
+  "measurement_agent": { "entity_id": "measure.example.org", "mrc_accredited": true } }

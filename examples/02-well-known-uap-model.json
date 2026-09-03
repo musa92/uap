@@ -1,0 +1,25 @@
+{
+  "_note": "Served at https://steward.example.org/.well-known/uap-model. The exchange MUST fetch this for supply.model.id and MUST refuse to clear an auction that violates it. This is the enforcement point that gives open-weights authors a say — and a share.",
+  "model_id": "hf:meta-llama/Llama-4-70B-Instruct",
+  "weights_digest": "sha256:9f2c4a6e8b0d2f4a6c8e0b2d4f6a8c0e2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a",
+  "steward": {
+    "entity_id": "steward.example.org",
+    "display_name": "Example Model Lab",
+    "keys": "https://steward.example.org/.well-known/jwks.json"
+  },
+  "advertising_policy": {
+    "permitted": true,
+    "permitted_positions": ["post_answer", "sidebar"],
+    "permitted_formats": ["sponsored_card", "sponsored_link"],
+    "blocked_categories": ["gambling", "political", "alcohol", "crypto_speculation"],
+    "max_signal_class": "coarse",
+    "require_trust_tier_min": 1,
+    "revenue_share_bps": 1500,
+    "payout": { "handler": "dev.uap.payout.ap2", "account_ref": "acct_steward_7712" },
+    "policy_url": "https://steward.example.org/ads-policy"
+  },
+  "_refusal_example": {
+    "advertising_policy": { "permitted": false },
+    "_effect": "Every exchange MUST refuse to clear any auction on this model. Derivatives inherit unless they publish their own manifest under a different weights_digest."
+  }
+}

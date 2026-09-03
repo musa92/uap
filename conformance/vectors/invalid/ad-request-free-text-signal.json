@@ -1,0 +1,21 @@
+{
+  "id": "01J9X2K4M7N8P0Q1R2S3T4U5V6",
+  "uap_version": "2026-09-02",
+  "placements": [{
+    "placement_id": "pl_1",
+    "placement": {
+      "placement_id": "pl_1",
+      "surface": { "type": "chat", "renderer": "markdown" },
+      "position": "post_answer",
+      "format": "sponsored_link",
+      "disclosure": { "required": true, "label": "Sponsored" }
+    }
+  }],
+  "inference": { "model_id": "hf:moonshotai/Kimi-K2-Instruct" },
+  "auction": { "mechanism": "uap.auction.second_price", "currency": "USD", "timeout_ms": 80 },
+  "context": {
+    "signal_version": "uap.intent/1.0",
+    "signal_class": "coarse",
+    "query_text": "cheap ryokan in kyoto for my anniversary"
+  }
+}

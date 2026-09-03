@@ -1,0 +1,17 @@
+{
+  "version": "0.2",
+  "language": "en-GB,en-US",
+  "dictionaryDefinitions": [
+    { "name": "uap-terms", "path": "./.cspell/custom-words.txt", "addWords": true }
+  ],
+  "dictionaries": ["uap-terms", "softwareTerms", "typescript", "python", "html"],
+  "ignorePaths": [
+    "LICENSE", ".git/**", "**/node_modules/**", "**/__pycache__/**",
+    "conformance/vectors/**", "source/taxonomy/**"
+  ],
+  "ignoreRegExpList": [
+    "sha256:[0-9a-f]+", "sha384:[0-9a-f]+", "sha512:[0-9a-f]+",
+    "\\b[0-9a-f]{16,}\\b", "https?://[^\\s)\"']+"
+  ],
+  "allowCompoundWords": true
+}

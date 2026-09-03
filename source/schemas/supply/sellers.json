@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/supply/sellers.json",
+  "title": "UAP Sellers Declaration",
+  "name": "dev.uap.supply.sellers",
+  "version": "2026-09-02",
+  "description": "Served at `GET /.well-known/uap-sellers.json` by every exchange and supply agent that pays anyone. Declares the identity and role of every entity it is authorized to pay for UAP inventory, so that a buyer can resolve each `asi`/`sid` pair in a SupplyChain object to a real, named counterparty.\n\nThis is the direct analogue of IAB Tech Lab sellers.json, and is deliberately field-compatible with it. It is unauthenticated, cacheable, and public: publishing it is what makes an exchange's supply auditable by buyers who have no contract with it.\n\nThe UAP-specific problem it solves: on the open web, ads.txt anchors a seller to a domain the seller controls. UAP's core supply is a self-hosted binary with no domain and nothing to lose, so `anchor_type` records which authority actually vouches for each seller instead.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "contact_email", "sellers"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Version of this declaration format, for parity with sellers.json."
+    },
+    "uap_version": {
+      "$ref": "../uap.json#/$defs/version",
+      "description": "The UAP protocol version this declaration is published against."
+    },
+    "contact_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Address a buyer can use to raise a supply quality or payment dispute."
+    },
+    "contact_address": { "type": "string", "maxLength": 512, "description": "Business postal address of the publishing entity." },
+    "identifiers": {
+      "type": "array",
+      "maxItems": 16,
+      "description": "Third-party identity assertions about the publishing entity — TAG-ID, DUNS, LEI, or an equivalent. Buyers use these to tie the declaration to a legal entity they can contract with.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "value"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 64, "examples": ["TAG-ID", "DUNS", "LEI"] },
+          "value": { "type": "string", "maxLength": 128 }
+        }
+      }
+    },
+    "sellers": {
+      "type": "array",
+      "maxItems": 1000000,
+      "description": "Every entity this system is authorized to pay. A SupplyChain node whose (asi, sid) does not resolve here is unauthorized supply and buyers SHOULD discard it.",
+      "items": { "$ref": "#/$defs/seller" }
+    },
+    "signature": {
+      "$ref": "../common/types/signature.json",
+      "description": "OPTIONAL signature over this declaration. sellers.json on the open web is unsigned and trusted by TLS alone; UAP permits signing so that a declaration can be cached, mirrored by a CDN, or served from a fetch proxy without losing its authority."
+    }
+  },
+
+  "$defs": {
+    "seller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seller_id", "seller_type", "anchor_type"],
+      "properties": {
+        "seller_id": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Opaque, stable identifier for this seller within the publishing system. This is the value that appears as `sid` in a SupplyChain node. MUST NOT be derived from any user-level value, and MUST be unique within this document."
+        },
+        "seller_type": {
+          "type": "string",
+          "enum": ["PUBLISHER", "INTERMEDIARY", "BOTH"],
+          "description": "PUBLISHER — this seller directly operates the serving node or surface where the impression occurs. INTERMEDIARY — this seller resells inventory it does not operate. BOTH — both, which buyers treat with more scrutiny. Values match sellers.json exactly."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Legal or business name. REQUIRED unless `is_confidential` is 1."
+        },
+        "domain": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Business domain of the seller. Frequently absent in UAP: a self-hosted serving node legitimately has no domain, which is what `anchor_type` exists to handle."
+        },
+        "is_confidential": {
+          "type": "integer",
+          "enum": [0, 1],
+          "default": 0,
+          "description": "1 if `name` and `domain` are withheld under a confidentiality agreement. Buyers commonly apply a discount to confidential supply; a system that marks most of its supply confidential should expect to be treated as opaque."
+        },
+        "is_passthrough": {
+          "type": "integer",
+          "enum": [0, 1],
+          "default": 0,
+          "description": "1 if this system passes the bid request through without being the seller of record — the entity is upstream and paid by someone else."
+        },
+
+        "anchor_type": {
+          "type": "string",
+          "enum": ["domain", "model_steward", "enrolment", "attestation", "none"],
+          "description": "The authority establishing this seller's right to sell, mirroring supply_chain.json#/$defs/anchor. UAP-specific and REQUIRED: it is the field that lets a buyer distinguish an operator with a domain and a contract from an anonymous binary, when neither has a website."
+        },
+        "model_ids": {
+          "type": "array",
+          "maxItems": 64,
+          "description": "For sellers whose inventory is the output of specific open-weights models, the model identifiers whose /.well-known/uap-model policies govern this supply. Lets a buyer confirm the steward permits the monetisation it is about to fund, and lets a steward audit who is selling against their weights.",
+          "items": { "type": "string", "maxLength": 256 },
+          "examples": [["hf:meta-llama/Llama-4-70B-Instruct"]]
+        },
+        "trust_tier": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "description": "The highest trust tier this seller has substantiated with the publishing system in the trailing 30 days. This is the publishing system's own assessment, not the seller's claim."
+        },
+        "enrolled_since": {
+          "type": "string",
+          "format": "date",
+          "description": "When this seller was enrolled. New supply is the highest-risk supply; SPEC.md §9.3 requires a ramp ceiling for the first 30 days, and buyers SHOULD apply their own."
+        },
+        "comment": { "type": "string", "maxLength": 512 }
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/capability.json",
+  "title": "UAP Capability",
+  "description": "Schema for UAP capabilities and extensions. An extension is a capability carrying an `extends` field. Reverse-domain naming is the governance mechanism: `dev.uap.*` is reserved for this specification and anyone may register under a domain they control.\n\nNothing in SPEC.md §6 (context confinement), §7 (answer integrity) or §9 (earned payment) may be relaxed by an extension. An extension that weakens an invariant is out of scope for the registry — stated here so the answer to 'can we add a mode where the prompt is sent?' is a documented no rather than a negotiation.",
+
+  "$defs": {
+    "base": {
+      "allOf": [
+        { "$ref": "uap.json#/$defs/entity" },
+        {
+          "type": "object",
+          "properties": {
+            "extends": {
+              "oneOf": [
+                { "$ref": "common/types/reverse_domain_name.json" },
+                { "type": "array", "items": { "$ref": "common/types/reverse_domain_name.json" }, "minItems": 1 }
+              ],
+              "description": "Parent capability or capabilities this extends. Present for extensions, absent for root capabilities."
+            },
+            "invariant_impact": {
+              "type": "string",
+              "enum": ["none", "strengthens"],
+              "default": "none",
+              "description": "An extension MUST declare that it does not weaken I1, I2 or I3. `strengthens` marks an extension that adds constraints (for example, a stricter k floor). There is deliberately no `relaxes` value; the registry has no way to express it."
+            }
+          }
+        }
+      ]
+    },
+
+    "platform_schema": {
+      "title": "Capability (Platform Schema)",
+      "description": "Full declaration for discovery. Includes spec and schema URLs so an agent can fetch and compose the capability during negotiation.",
+      "allOf": [{ "$ref": "#/$defs/base" }, { "required": ["spec", "schema"] }]
+    },
+    "participant_schema": {
+      "title": "Capability (Participant Schema)",
+      "description": "Declaration in a participant's own manifest. Requires `schema` so counterparties can compose it; may add participant-specific `config`.",
+      "allOf": [{ "$ref": "#/$defs/base" }, { "required": ["schema"] }]
+    },
+    "response_schema": {
+      "title": "Capability (Response Schema)",
+      "description": "Minimal reference in an API response. Only name and version are needed to confirm which capabilities were active.",
+      "allOf": [{ "$ref": "#/$defs/base" }]
+    }
+  }
+}

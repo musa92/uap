@@ -1,0 +1,9 @@
+{ "complete": true, "ver": "1.0", "nodes": [
+  { "asi": "uax.example.com", "sid": "node_7712", "hp": 1, "rid": "01J9X0000000000000000000A1",
+    "role": "serving_node", "trust_tier": 1,
+    "anchor": { "type": "model_steward", "reference": "https://steward.example.org/.well-known/uap-model",
+                "verified_at": "2026-09-02T00:00:00Z" } },
+  { "asi": "uax.example.com", "sid": "ssp_0041", "hp": 1, "name": "Example Supply Agent",
+    "domain": "ssp.example.com", "role": "supply_agent", "trust_tier": 1,
+    "anchor": { "type": "domain", "reference": "https://uax.example.com/.well-known/uap-sellers.json",
+                "verified_at": "2026-09-02T00:00:00Z" } } ] }

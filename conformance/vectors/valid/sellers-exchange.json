@@ -1,0 +1,11 @@
+{ "version": "1.0", "uap_version": "2026-09-02", "contact_email": "protocol@example.com",
+  "contact_address": "1 Example Way, Wilmington DE 19801, US",
+  "identifiers": [{ "name": "TAG-ID", "value": "a1b2c3d4e5f60718" }],
+  "sellers": [
+    { "seller_id": "node_7712", "seller_type": "PUBLISHER", "is_confidential": 1,
+      "anchor_type": "model_steward", "model_ids": ["hf:meta-llama/Llama-4-70B-Instruct"],
+      "trust_tier": 1, "enrolled_since": "2026-07-14",
+      "comment": "Self-hosted node. No domain by nature; steward policy is the anchor." },
+    { "seller_id": "ssp_0041", "seller_type": "INTERMEDIARY", "name": "Example Supply Agent",
+      "domain": "ssp.example.com", "anchor_type": "domain", "trust_tier": 2,
+      "enrolled_since": "2026-02-01" } ] }

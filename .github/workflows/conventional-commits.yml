@@ -1,0 +1,24 @@
+name: conventional-commits
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            spec
+            schema
+            test
+            chore
+            refactor
+          requireScope: false

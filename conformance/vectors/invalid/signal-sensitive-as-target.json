@@ -1,0 +1,8 @@
+{
+  "signal_version": "uap.intent/1.0",
+  "signal_class": "coarse",
+  "intents": [{ "id": "health.condition", "confidence": 0.9 }],
+  "commercial_intent": 0.8,
+  "safety": { "sensitive_category": true, "brand_risk": "low" },
+  "targeting_hint": "users researching medication"
+}

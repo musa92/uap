@@ -1,0 +1,31 @@
+{
+  "receipt_id": "rc_01J9X00000000000000000000B",
+  "decision_id": "dc_local_ef95dd7ce2",
+  "nonce": "n_ef95dd7ce24aecfc7db680c29a097fb4",
+  "placement_id": "pl_post_answer_card",
+  "creative_digest": "sha256:5b7e1f9c2a4d8e6b0c3f5a7d9e1b3c5f7a9d1e3b5c7f9a1d3e5b7c9f1a3d5e7b",
+  "rendered_at": "2026-09-02T14:30:13Z",
+  "viewability": {
+    "rendered": true, "standard": "mrc_display", "viewable": true,
+    "method": "intersection_observer", "visible_ms": 3400, "user_present": true,
+    "ivt": { "classification": "valid" }
+  },
+  "integrity": {
+    "organic_answer_digest": "sha256:c1d0a3f5e7b9d1c3a5f7e9b1d3c5a7f9e1b3d5c7a9f1e3b5d7c9a1f3e5b7d9c1",
+    "no_decode_influence": true,
+    "ad_excluded_from_context": true,
+    "disclosure_rendered": true
+  },
+  "local_decision": {
+    "bundle_id": "bn_2026w36_a",
+    "line_item_id": "li_991",
+    "impression_index": 0
+  },
+  "auction_trace": [
+    { "line_item_id": "li_772", "ecpm_micros": 80000000, "outcome": "eliminated_targeting" },
+    { "line_item_id": "li_310", "ecpm_micros": 41000000, "outcome": "lost" },
+    { "line_item_id": "li_991", "ecpm_micros": 62000000, "outcome": "won" }
+  ],
+  "trust_tier": 1,
+  "signature": { "kid": "surface-ed25519-01", "alg": "EdDSA", "value": "3q2-7w" }
+}

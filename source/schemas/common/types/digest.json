@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/digest.json",
+  "title": "Digest",
+  "description": "A content digest formatted as `<algorithm>:<lowercase-hex>`. SHA-256 is REQUIRED to implement.",
+  "$comment": "A digest over a JSON object is computed on the RFC 8785 (JCS) canonical form. Without a canonicalization rule, two conformant serializers produce different digests for the same object and every signature check fails. See SPEC.md §4.4.",
+  "type": "string",
+  "pattern": "^(sha256:[0-9a-f]{64}|sha384:[0-9a-f]{96}|sha512:[0-9a-f]{128})$",
+  "examples": [
+    "sha256:5b7e1f9c2a4d8e6b0c3f5a7d9e1b3c5f7a9d1e3b5c7f9a1d3e5b7c9f1a3d5e7b"
+  ]
+}

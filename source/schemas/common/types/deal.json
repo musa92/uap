@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/deal.json",
+  "title": "Deal",
+  "description": "A pre-negotiated arrangement between a buyer and this supply, identified by `deal_id` and priced outside the open auction.",
+  "$comment": "Maps to OpenRTB 2.6 `imp.pmp.deals`. Deals are how brand budget actually buys: a holding company commits spend against guaranteed or preferred access, not against an open auction it cannot forecast. Supply with no deal support is limited to remnant demand.\n\nGuaranteed deals bypass ranking. They do not bypass policy, the model steward's advertising policy, or the integrity requirements of SPEC.md §7.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["deal_id", "kind"],
+  "properties": {
+    "deal_id": { "type": "string", "maxLength": 128, "description": "Identifier agreed between buyer and seller." },
+    "kind": {
+      "type": "string",
+      "enum": ["guaranteed", "preferred", "private_auction"],
+      "description": "How this deal participates in selection.",
+      "$comment": "  guaranteed       always wins at the agreed price, subject to policy and integrity checks\n  preferred        bids in the auction with priority over open-market demand at equal price\n  private_auction  competes only against other deals on this placement"
+    },
+    "floor_cpm_micros": { "$ref": "cpm.json", "description": "Agreed price or floor for this deal." },
+    "currency": { "$ref": "currency.json" },
+    "seats": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "type": "string", "maxLength": 64 },
+      "description": "Buyer seat identifiers permitted to transact this deal.",
+      "$comment": "Maps to OpenRTB `deal.wseat`."
+    },
+    "advertiser_domains": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "type": "string", "maxLength": 256 },
+      "description": "Advertiser domains permitted on this deal.",
+      "$comment": "Maps to OpenRTB `deal.wadomain`."
+    },
+    "expires_at": { "type": "string", "format": "date-time", "description": "End of the deal flight." }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/settlement/payout_handler.json",
+  "title": "UAP Payout Handler",
+  "description": "A pluggable mechanism for moving money to a party in a RevenueSplit. Handlers are namespaced by reverse-DNS and registered the same way UCP registers payment handlers, so an implementation that already resolves UCP handlers resolves these with the same code.\n\nUAP never carries payment credentials. A handler declares where a payout can go and under what terms; the instrument details live with the handler's own provider.\n\nRegistered by this specification: dev.uap.payout.ap2 (AP2 settlement mandate, REQUIRED to implement for the uap.settle profile), dev.uap.payout.ach, com.stripe.connect, com.wise.payout.",
+
+  "$defs": {
+    "base": {
+      "allOf": [
+        { "$ref": "../uap.json#/$defs/entity" },
+        {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 128,
+              "description": "Instance identifier, distinguishing multiple configurations of the same handler."
+            },
+            "currencies": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "../common/types/currency.json" },
+              "description": "Currencies this handler instance can pay out in."
+            },
+            "minimum_payout_micros": {
+              "$ref": "../common/types/micros.json",
+              "description": "Balance below which payout is deferred to the next period. A self-hosted node earning a few dollars a month is the common case, so this value determines whether long-tail supply ever actually gets paid; handlers SHOULD keep it low and exchanges MUST NOT expire an undisbursed balance."
+            },
+            "payout_period": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly", "net30", "net60"],
+              "description": "Settlement cadence. Net terms are the norm for holding-company demand; daily and weekly exist so that self-hosted supply is not financing an exchange's working capital."
+            },
+            "parties": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["serving_node", "surface", "supply_agent", "model_steward", "exchange"] },
+              "description": "Which RevenueSplit parties this handler instance can pay. A steward payout and a node payout frequently need different rails."
+            },
+            "requires_kyc": {
+              "type": "boolean",
+              "description": "Whether the handler requires identity verification before disbursing. Directly determines the trust tier a seller can reach (SPEC.md §9.3)."
+            }
+          }
+        }
+      ]
+    },
+
+    "platform_schema": { "allOf": [{ "$ref": "#/$defs/base" }, { "required": ["spec", "schema"] }] },
+    "participant_schema": { "allOf": [{ "$ref": "#/$defs/base" }] },
+    "response_schema": { "allOf": [{ "$ref": "#/$defs/base" }] }
+  }
+}

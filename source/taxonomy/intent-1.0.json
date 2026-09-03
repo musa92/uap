@@ -1,0 +1,47 @@
+{
+  "taxonomy": "uap.intent",
+  "version": "1.0",
+  "max_depth": 4,
+  "_note": "Abridged illustrative extract. The full taxonomy is a closed, versioned, publicly published document; a ContextSignal carrying an id absent from it MUST be rejected with UAP_SIGNAL_MALFORMED. Additions are minor versions; removals or re-parentings require a new major version with a 12-month overlap.",
+  "nodes": [
+    { "id": "travel", "children": [
+      { "id": "travel.accommodation", "children": [
+        { "id": "travel.accommodation.hotel" },
+        { "id": "travel.accommodation.rental" }
+      ]},
+      { "id": "travel.transport", "children": [
+        { "id": "travel.transport.air" },
+        { "id": "travel.transport.rail" }
+      ]},
+      { "id": "travel.destination", "children": [
+        { "id": "travel.destination.japan" }
+      ]}
+    ]},
+    { "id": "software", "children": [
+      { "id": "software.developer_tools", "children": [
+        { "id": "software.developer_tools.observability" },
+        { "id": "software.developer_tools.ci" }
+      ]},
+      { "id": "software.infrastructure", "children": [
+        { "id": "software.infrastructure.gpu_compute" },
+        { "id": "software.infrastructure.database" }
+      ]}
+    ]},
+    { "id": "home", "children": [
+      { "id": "home.appliances" },
+      { "id": "home.improvement" }
+    ]},
+    { "id": "education", "children": [
+      { "id": "education.professional_certification" },
+      { "id": "education.language_learning" }
+    ]},
+    { "id": "automotive", "children": [
+      { "id": "automotive.purchase" },
+      { "id": "automotive.service" }
+    ]}
+  ],
+  "excluded_by_design": [
+    "Any branch that would let a buyer infer a uap.sensitive category by elimination.",
+    "Any branch narrower than the k-anonymity floor can support in practice."
+  ]
+}

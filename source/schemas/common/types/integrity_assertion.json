@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/integrity_assertion.json",
+  "title": "Integrity Assertion",
+  "description": "Operator attestations that the answer-integrity boundary held for this turn. All four members are REQUIRED and constrained to `true`; a turn that cannot assert them is not billable.",
+  "$comment": "Defined by SPEC.md §7 (invariant I2).\n\nThere is deliberately no conformant encoding for a violated boundary. Admitting decode influence is a settlement-level breach, not a field value.\n\nCommercial basis: survey evidence indicates roughly two thirds of US adults report lower trust in AI answers when ads are present (Ipsos). In retail media, the nearest structural analogue, 30-40% of sponsored-product sales are estimated to cannibalize purchases that would have occurred organically. A surface that bends its answers converges on display CPMs. See docs/documentation/market-context.md §3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "organic_answer_digest",
+    "no_decode_influence",
+    "ad_excluded_from_context",
+    "disclosure_rendered"
+  ],
+  "properties": {
+    "organic_answer_digest": {
+      "$ref": "digest.json",
+      "description": "Digest of the exact bytes shown to the user as the answer, excluding the ad block and its separator.",
+      "$comment": "The commitment that makes 'the ad did not change the answer' checkable. A settlement-time audit MAY re-request it."
+    },
+    "no_decode_influence": {
+      "const": true,
+      "description": "Asserts that no bid value, advertiser identity, or campaign state was an input to generation.",
+      "$comment": "Covers sampling, logit biasing, beam scoring, speculative decoding, model routing, system-prompt selection, generation conditioned on the winning ad, and re-ranking of candidate answers by expected revenue. At trust tier 2 this is covered by the binary attestation."
+    },
+    "ad_excluded_from_context": {
+      "const": true,
+      "description": "Asserts that creative content did not enter the model's context for this turn and will be stripped before any subsequent summarization or re-feed.",
+      "$comment": "An ad slot is an attacker-controlled text channel adjacent to a model. A system that interpolates purchased text into a prompt has granted write access to its own reasoning. See SPEC.md §7.2."
+    },
+    "disclosure_rendered": {
+      "const": true,
+      "description": "Asserts that the disclosure was rendered in-band before or at the moment the user could act on the placement.",
+      "$comment": "Not defeated by contrast, size, collapse, timing, or scroll position. A billable precondition: an unrendered disclosure makes the impression non-billable, not merely non-compliant."
+    },
+    "composer": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Identifies the function that joined answer and creative.",
+      "properties": {
+        "id": {
+          "$ref": "reverse_domain_name.json",
+          "examples": [
+            "dev.uap.composer.text_separator"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "deterministic": {
+          "const": true
+        }
+      },
+      "$comment": "The composer concatenates and MUST NOT rewrite. It MUST NOT be a language model. See SPEC.md §7.1."
+    }
+  }
+}

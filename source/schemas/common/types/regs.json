@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/regs.json",
+  "title": "Regulatory Signals",
+  "description": "Consent and regulatory state applying to this request. Absence of a member means the signal was not determined, which is not the same as consent.",
+  "$comment": "Maps to OpenRTB 2.6 `regs`. Without these members a request cannot lawfully be transacted in the EU, in US states with comprehensive privacy statutes, or against inventory that may reach children. Buyers drop requests with no regulatory block rather than assume permission, so an exchange that omits this object sells nothing in those markets.\n\nUAP carries the consent string but never the identifiers it governs. I1 forbids the cross-session identifier that most consent frameworks exist to regulate, so in practice these members constrain what a buyer may do post-click and in its own systems.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "gpp": {
+      "type": "string",
+      "maxLength": 4096,
+      "description": "IAB Global Privacy Platform consent string.",
+      "$comment": "Maps to OpenRTB `regs.gpp`. GPP supersedes the earlier TCF and US Privacy strings and encodes several jurisdictions in one value."
+    },
+    "gpp_sid": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "type": "integer", "minimum": 0 },
+      "description": "GPP section identifiers present in `gpp`.",
+      "$comment": "Maps to OpenRTB `regs.gpp_sid`. Required to parse `gpp`, because a section absent from this list is absent from the string."
+    },
+    "gdpr": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "1 when the request is subject to GDPR.",
+      "$comment": "Maps to OpenRTB `regs.gdpr`."
+    },
+    "coppa": {
+      "type": "integer",
+      "enum": [0, 1],
+      "description": "1 when the request is subject to COPPA.",
+      "$comment": "Maps to OpenRTB `regs.coppa`. A COPPA request MUST carry `signal_class: \"none\"`; the sensitive taxonomy classifies `minors` as suppressing, so a conformant node does not build an AdRequest at all where a minor is indicated."
+    },
+    "us_privacy": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "Legacy CCPA string. Deprecated in favour of `gpp`.",
+      "$comment": "Maps to OpenRTB `regs.us_privacy`. Retained for demand that has not migrated to GPP."
+    },
+    "dsa": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "EU Digital Services Act transparency requirements for this request.",
+      "$comment": "DSA Articles 26 and 39 require that a recipient can identify the advertiser and the parameters used to target them, and that very large platforms maintain a public ad repository. A buyer bidding into EU inventory needs to know at bid time whether it must supply that data.",
+      "properties": {
+        "required": {
+          "type": "integer",
+          "enum": [0, 1],
+          "description": "1 when DSA advertising transparency applies."
+        },
+        "pubrender": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "description": "Whether the publisher renders the transparency disclosure.",
+          "$comment": "  0  publisher cannot render; the buyer must supply rendered disclosure\n  1  publisher could render, buyer may still supply its own\n  2  publisher will render; buyer need not supply one"
+        },
+        "datatopub": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "description": "Whether transparency data must be sent to the publisher.",
+          "$comment": "  0  not required\n  1  optional\n  2  required"
+        }
+      }
+    }
+  }
+}

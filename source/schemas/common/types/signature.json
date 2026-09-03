@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/signature.json",
+  "title": "Detached Object Signature",
+  "description": "A detached signature over a UAP object. The signing input is the RFC 8785 canonical serialization of the object with the `signature` member removed, prefixed by a domain-separation tag.",
+  "$comment": "Domain separation binds a signature to one object type. Without it, a signature over a Decision can be replayed as a Bundle whenever the two share a field subset. SPEC.md §4.4 defines the tag set.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kid",
+    "alg",
+    "value"
+  ],
+  "properties": {
+    "kid": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "Key identifier, resolvable in the signer's JWKS at the manifest `keys` URL."
+    },
+    "alg": {
+      "type": "string",
+      "enum": [
+        "EdDSA",
+        "ES256"
+      ],
+      "description": "Signature algorithm. EdDSA over Ed25519 is REQUIRED to implement; ES256 is OPTIONAL."
+    },
+    "value": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "maxLength": 1024,
+      "description": "Unpadded base64url-encoded signature (RFC 4648 §5).",
+      "$comment": "Padding is the most frequent cause of cross-implementation signature mismatch."
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Signature creation time.",
+      "$comment": "Verifiers MUST accept any key present in the signer's JWKS at this time, refetching at most once per 60 seconds. Key rotation adds a new kid; it does not invalidate signatures already created."
+    },
+    "domain": {
+      "type": "string",
+      "description": "The domain-separation tag prefixed to the signing input.",
+      "examples": [
+        "uap-decision/2026-09-02",
+        "uap-receipt/2026-09-02",
+        "uap-bundle/2026-09-02"
+      ],
+      "$comment": "Advisory. Verifiers derive the tag from the object type and MUST NOT trust this field."
+    }
+  }
+}

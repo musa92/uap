@@ -1,0 +1,101 @@
+{
+  "_note": "Each vector is validated against exactly one schema with an explicit expectation. Negative vectors are the point: a suite that only proves valid things pass proves almost nothing.",
+  "vectors": [
+    {
+      "file": "valid/ad-request-full.json",
+      "schema": "supply/ad_request.json",
+      "expect": "valid",
+      "note": "A complete hosted-profile request: deals, seller metrics, GPP and DSA, GARM suitability, two-hop supply chain."
+    },
+    {
+      "file": "valid/viewability-mrc-display.json",
+      "schema": "common/types/viewability.json",
+      "expect": "valid",
+      "note": "Fully measured MRC display impression corroborated by an accredited vendor."
+    },
+    {
+      "file": "valid/viewability-cli-delivered-only.json",
+      "schema": "common/types/viewability.json",
+      "expect": "valid",
+      "note": "A CLI surface has no pixels. Honest delivery claim, priced accordingly."
+    },
+    {
+      "file": "valid/supply-chain-two-hop.json",
+      "schema": "common/types/supply_chain.json",
+      "expect": "valid",
+      "note": "Domainless self-hosted node anchored to its model steward, resold by a domain-anchored supply agent."
+    },
+    {
+      "file": "valid/sellers-exchange.json",
+      "schema": "supply/sellers.json",
+      "expect": "valid",
+      "note": "Exchange seller declaration mixing confidential domainless supply with a named intermediary."
+    },
+    {
+      "file": "valid/integrity-assertion.json",
+      "schema": "common/types/integrity_assertion.json",
+      "expect": "valid",
+      "note": "All four I2 assertions present with a declared deterministic composer."
+    },
+    {
+      "file": "invalid/viewability-delivered-only-claims-viewable.json",
+      "schema": "common/types/viewability.json",
+      "expect": "invalid",
+      "reason": "A pixel-less surface claiming a viewable impression. This is the single most likely way to inflate a rate card."
+    },
+    {
+      "file": "invalid/viewability-viewable-without-evidence.json",
+      "schema": "common/types/viewability.json",
+      "expect": "invalid",
+      "reason": "viewable:true with no visible_ms. A viewability claim must carry its measurement."
+    },
+    {
+      "file": "invalid/supply-chain-hop-without-anchor.json",
+      "schema": "common/types/supply_chain.json",
+      "expect": "invalid",
+      "reason": "An unanchored hop is unauthorized supply. anchor is REQUIRED, including the honest value 'none'."
+    },
+    {
+      "file": "invalid/sellers-unknown-seller-type.json",
+      "schema": "supply/sellers.json",
+      "expect": "invalid",
+      "reason": "seller_type is a closed enum matching IAB sellers.json. Buyer tooling depends on that."
+    },
+    {
+      "file": "invalid/integrity-decode-influence-admitted.json",
+      "schema": "common/types/integrity_assertion.json",
+      "expect": "invalid",
+      "reason": "There is deliberately no conformant way to admit decode influence. A turn that cannot assert I2 must not be billed."
+    },
+    {
+      "file": "invalid/signature-padded-base64.json",
+      "schema": "common/types/signature.json",
+      "expect": "invalid",
+      "reason": "base64url MUST be unpadded (RFC 4648 \u00a75). Padding is the classic cross-implementation signature mismatch."
+    },
+    {
+      "file": "invalid/ad-request-free-text-signal.json",
+      "schema": "supply/ad_request.json",
+      "expect": "invalid",
+      "reason": "A free-text member in the context signal. This is the exact shape of an I1 breach and must be unrepresentable."
+    },
+    {
+      "file": "valid/receipt-local-decision.json",
+      "schema": "supply/impression_receipt.json",
+      "expect": "valid",
+      "note": "Profile L receipt carrying the inputs the exchange reconstructs the nonce from."
+    },
+    {
+      "file": "invalid/signal-sensitive-as-target.json",
+      "schema": "supply/context_signal.json",
+      "expect": "invalid",
+      "reason": "A free-text targeting hint alongside a sensitive flag. The flag exists only to suppress and must never become a segment."
+    },
+    {
+      "file": "invalid/ad-request-no-commitment.json",
+      "schema": "supply/ad_request.json",
+      "expect": "invalid",
+      "reason": "No answer commitment. Without a digest recorded before selection runs, answer integrity is an assertion the exchange cannot check."
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/reverse_domain_name.json",
+  "title": "Reverse Domain Name",
+  "description": "Reverse-DNS identifier used as a registry key for capabilities, services, formats, auction mechanisms, and payout handlers.",
+  "$comment": "`dev.uap.*` is reserved for this specification. Vendors MUST namespace extensions under a domain they control. The literal `uap` is excluded because that member name denotes the protocol namespace at every structured scope.",
+  "type": "string",
+  "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9][a-z0-9_]*)+$",
+  "maxLength": 256,
+  "not": {
+    "const": "uap"
+  },
+  "examples": [
+    "dev.uap.ads.decision",
+    "dev.uap.payout.ap2",
+    "com.acme.ads.brandlift"
+  ]
+}

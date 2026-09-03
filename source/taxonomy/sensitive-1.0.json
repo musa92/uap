@@ -1,0 +1,28 @@
+{
+  "taxonomy": "uap.sensitive",
+  "version": "1.0",
+  "normative": true,
+  "rule": "If a turn classifies into ANY node below, the serving node MUST NOT construct an AdRequest and MUST NOT run a local auction for that turn. Implementations MUST fail closed: a category the classifier cannot confidently exclude is treated as sensitive.",
+  "categories": [
+    { "id": "health.condition",        "note": "symptoms, diagnoses, treatment, medication, disability" },
+    { "id": "health.mental",           "note": "includes self-harm and crisis contexts" },
+    { "id": "health.reproductive",     "note": "pregnancy, contraception, fertility, termination" },
+    { "id": "identity.sexual",         "note": "sexual orientation, sexual activity, sexual health" },
+    { "id": "identity.gender",         "note": "gender identity and transition" },
+    { "id": "identity.race_ethnicity" },
+    { "id": "identity.religion" },
+    { "id": "identity.immigration",    "note": "status, asylum, deportation" },
+    { "id": "politics.affiliation",    "note": "party, candidate, voting, activism" },
+    { "id": "legal.jeopardy",          "note": "criminal exposure, arrest, litigation the user is party to" },
+    { "id": "finance.distress",        "note": "debt, bankruptcy, foreclosure, eviction, payday lending" },
+    { "id": "safety.violence",         "note": "abuse, stalking, threats — as victim or as subject" },
+    { "id": "minors",                  "note": "the user is or may be a minor, or the turn concerns a specific minor" },
+    { "id": "biometric_precise_location" },
+    { "id": "trade_union_membership" }
+  ],
+  "notes": [
+    "This list is a floor, not a ceiling. Jurisdictions impose more (GDPR Art. 9, CPRA sensitive PI, COPPA, DSA Art. 26(3)).",
+    "Sensitivity is evaluated on the CONVERSATION, not the individual turn: a turn that is innocuous alone but follows a sensitive turn inherits the classification for the remainder of the session.",
+    "A sensitive classification MUST NOT itself be transmitted as a targeting signal. safety.sensitive_category exists only to suppress, never to segment."
+  ]
+}

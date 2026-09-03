@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/demand/creative.json",
+  "title": "Creative",
+  "name": "dev.uap.demand.creative",
+  "version": "2026-09-02",
+  "description": "The advertisement as structured data. Never markup, never a template, never text destined for a model's context.",
+  "$comment": "The single most consequential design decision in UAP. A creative is attacker-controlled text that arrives over the network and is rendered beside a language model. Supplying it as markup or as a prompt fragment would make an ad slot the cheapest prompt-injection vector available, purchased at a CPM.\n\nSo there is no `html`, no `adm`, no `script`, and no template member. The surface renders these fields as inert text nodes using its own chrome, and interactive behaviour exists only through the declared `actions`. See SPEC.md §7.2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["creative_id", "format", "content", "disclosure", "content_digest"],
+  "properties": {
+    "creative_id": { "type": "string", "maxLength": 128 },
+    "format": {
+      "type": "string",
+      "enum": ["sponsored_link", "sponsored_card", "sponsored_suggestion", "product_offer", "sponsored_action"],
+      "description": "Must match the format the placement declared."
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headline", "brand_name"],
+      "properties": {
+        "headline": { "type": "string", "maxLength": 120, "description": "Primary line. Rendered as a text node." },
+        "body": { "type": "string", "maxLength": 280, "description": "Supporting line. Rendered as a text node." },
+        "brand_name": { "type": "string", "maxLength": 64, "description": "Advertiser name as shown to the user." },
+        "assets": {
+          "type": "array", "maxItems": 4,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["role", "url", "digest"],
+            "properties": {
+              "role": { "type": "string", "enum": ["logo", "product", "background"] },
+              "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+              "digest": { "$ref": "../common/types/digest.json", "description": "Digest of the asset bytes. A surface MUST refuse an asset that does not match." },
+              "width": { "type": "integer", "minimum": 1, "maximum": 4096 },
+              "height": { "type": "integer", "minimum": 1, "maximum": 4096 },
+              "alt": { "type": "string", "maxLength": 200 }
+            }
+          }
+        },
+        "actions": {
+          "type": "array", "maxItems": 3,
+          "description": "The only interactive elements. Rendered by the surface's own chrome from these fields.",
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["type", "label", "url"],
+            "properties": {
+              "type": { "type": "string", "enum": ["link", "checkout", "call"] },
+              "label": { "type": "string", "maxLength": 32 },
+              "url": {
+                "type": "string", "format": "uri", "pattern": "^https://",
+                "description": "Must resolve to a verified_domain in the advertiser's /.well-known/uap-brand.",
+                "$comment": "Redirect chains are resolved and re-checked by the exchange at review time, so a creative cannot be approved against one destination and later serve another. `{CLICK_ID}` is substituted by the surface."
+              }
+            }
+          }
+        }
+      }
+    },
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "advertiser_name"],
+      "properties": {
+        "label": { "type": "string", "maxLength": 32, "default": "Sponsored" },
+        "advertiser_name": { "type": "string", "maxLength": 128, "description": "The paying entity, which may differ from brand_name." }
+      }
+    },
+    "categories": {
+      "type": "array", "maxItems": 16,
+      "items": { "type": "string", "maxLength": 64 },
+      "description": "Advertiser categories, used against seller block lists and brand suitability."
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "description": "Exchange review state. A surface MUST refuse a creative that is not approved.",
+      "properties": {
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "reviewer": { "type": "string", "maxLength": 256 },
+        "policy_version": { "type": "string", "maxLength": 32 },
+        "rejection_reasons": { "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 64 } }
+      }
+    },
+    "content_digest": {
+      "$ref": "../common/types/digest.json",
+      "description": "Digest over the RFC 8785 canonical form of `content`.",
+      "$comment": "Binds what was reviewed to what was rendered. The node refuses a mismatch, and the receipt carries this value so the exchange can confirm the creative it approved is the creative that was shown."
+    }
+  }
+}

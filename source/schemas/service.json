@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/service.json",
+  "title": "UAP Service",
+  "description": "A transport-bound endpoint group exposing one or more capabilities. UAP defines one normative wire protocol (REST/HTTPS + JSON) and two bindings (MCP, A2A).\n\nServe-time decisioning has a hard latency budget: p99 <= 80 ms for POST /decisions, measured exchange-side. A2A MUST NOT be used for serve-time decisions — the round trip does not fit the budget — and the schema enforces this rather than merely recommending it.",
+
+  "$defs": {
+    "transport": {
+      "type": "string",
+      "enum": ["rest", "mcp", "a2a"],
+      "description": "rest — normative; TLS 1.3 REQUIRED, HTTP/2 or HTTP/3 RECOMMENDED. mcp — for agents that are themselves buyer or seller; negotiation-time work. a2a — long-running negotiation only (deal shaping, creative approval)."
+    },
+
+    "base": {
+      "allOf": [
+        { "$ref": "uap.json#/$defs/entity" },
+        {
+          "type": "object",
+          "required": ["transport"],
+          "properties": {
+            "transport": { "$ref": "#/$defs/transport" },
+            "base_url": { "type": "string", "format": "uri", "description": "Root URL for the service. REQUIRED for rest and mcp transports." },
+            "endpoint": { "type": "string", "format": "uri", "description": "Agent Card URL for a2a transports." },
+            "openapi": { "type": "string", "format": "uri", "description": "OpenAPI document for a rest transport." },
+            "openrpc": { "type": "string", "format": "uri", "description": "OpenRPC document for an mcp transport." },
+            "serve_time": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether this service is used on the serve-time path, inside the 80 ms budget."
+            },
+            "observed_p99_ms": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The operator's observed p99 latency for this service. Exchanges SHOULD publish this; buyers and nodes use it for supply path optimization the same way they use it on the open web."
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "serve_time": { "const": true } }, "required": ["serve_time"] },
+              "then": {
+                "properties": { "transport": { "enum": ["rest", "mcp"] } },
+                "description": "A2A cannot carry a serve-time decision within the 80 ms p99 budget."
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    "platform_schema": { "allOf": [{ "$ref": "#/$defs/base" }, { "required": ["spec"] }] },
+    "participant_schema": { "allOf": [{ "$ref": "#/$defs/base" }] },
+    "response_schema": { "allOf": [{ "$ref": "#/$defs/base" }] }
+  }
+}

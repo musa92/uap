@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/viewability.json",
+  "title": "Viewability",
+  "description": "The surface's measurement of whether a human could have seen the placement. Thresholds follow Media Rating Council definitions.",
+  "$comment": "MRC thresholds, restated for reference:\n  display        >=50% of pixels in view for >=1 continuous second\n  video          >=50% of pixels in view for >=2 continuous seconds\n  large display  >=242000 px creative: >=30% for >=1 second\nBuyers reconcile against accredited measurement. A bespoke viewability definition cannot be priced against a rate card.\n\nSeveral conformant UAP surfaces have no pixels: a CLI, an API response, an MCP tool result. These measure `delivered_only`, which is weaker evidence and is priced as such under SPEC.md §9.3. The alternative -- permitting a pixel-less surface to assert viewability -- is the cheapest available method of rate-card inflation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rendered",
+    "standard",
+    "method"
+  ],
+  "properties": {
+    "rendered": {
+      "type": "boolean",
+      "description": "The placement was composed into output returned to the client.",
+      "$comment": "Necessary but not sufficient for billing."
+    },
+    "standard": {
+      "type": "string",
+      "enum": [
+        "mrc_display",
+        "mrc_video",
+        "mrc_large_display",
+        "audible_playback",
+        "delivered_only"
+      ],
+      "description": "The measurement standard `viewable` was evaluated against.",
+      "$comment": "  mrc_display        >=50% of pixels for >=1 continuous second\n  mrc_video          >=50% of pixels for >=2 continuous seconds\n  mrc_large_display  >=242000 px creative: >=30% for >=1 second\n  audible_playback   voice surfaces: disclosure and creative played to completion, not skipped\n  delivered_only     the surface cannot observe visibility; not a viewability claim"
+    },
+    "viewable": {
+      "type": "boolean",
+      "description": "True only if the threshold named by `standard` was met. Absent or false when `standard` is `delivered_only`."
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "intersection_observer",
+        "native_layout",
+        "voice_playback",
+        "declared",
+        "none"
+      ],
+      "description": "How the measurement was obtained.",
+      "$comment": "`declared` denotes an operator assertion made without instrumentation and is treated as self-reported. `none` pairs with `delivered_only`."
+    },
+    "visible_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400000,
+      "description": "Continuous milliseconds the placement met the pixel threshold.",
+      "$comment": "The distribution of this value across a node's traffic is a stronger fraud signal than any individual receipt. An implausibly narrow distribution indicates synthesis."
+    },
+    "visible_pct": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Peak percentage of the placement's area in view during the measurement window."
+    },
+    "user_present": {
+      "type": "boolean",
+      "description": "The surface observed evidence of a human in the session -- focus, input, scroll, or playback control -- within the measurement window.",
+      "$comment": "Distinct from viewability. A placement can be pixel-viewable in an unattended tab."
+    },
+    "ivt": {
+      "$ref": "#/$defs/ivt",
+      "description": "Invalid traffic classification applied before submission.",
+      "$comment": "Filtering upstream costs less than disputing at settlement."
+    },
+    "measurement_agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An independent measurement vendor that corroborated this receipt.",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "mrc_accredited": {
+          "type": "boolean",
+          "description": "Whether the named vendor holds MRC accreditation for the corroborated metric.",
+          "$comment": "Buyers commonly require accreditation before paying on measured rates rather than delivered rates."
+        },
+        "signature": {
+          "$ref": "signature.json"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ivt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification"
+      ],
+      "description": "Invalid traffic classification using the MRC two-category framework.",
+      "properties": {
+        "classification": {
+          "type": "string",
+          "enum": [
+            "valid",
+            "givt",
+            "sivt",
+            "unclassified"
+          ],
+          "description": "The classification assigned by the filtering party.",
+          "$comment": "  valid         passed the filtration applied\n  givt          General Invalid Traffic: list-based filtration (data-center ranges, declared\n                bots, crawlers, non-browser user agents)\n  sivt          Sophisticated Invalid Traffic: requires analytics and multi-point corroboration\n  unclassified  no filtration applied\nTrust tier 0 supply is by construction indistinguishable from GIVT: an anonymous binary in a loop is the exact target of list-based filtration. This is why SPEC.md §9.3 forbids selling tier 0 on CPM. Implementations SHOULD NOT report tier 0 traffic as `valid`."
+        },
+        "filtered_reason": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Registry key identifying why traffic was filtered."
+        },
+        "filter_version": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Version of the filtration list or model applied.",
+          "$comment": "Required to replay a settlement dispute."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "title": "delivered_only cannot assert viewability",
+      "if": {
+        "properties": {
+          "standard": {
+            "const": "delivered_only"
+          }
+        },
+        "required": [
+          "standard"
+        ]
+      },
+      "then": {
+        "properties": {
+          "viewable": {
+            "const": false
+          },
+          "method": {
+            "const": "none"
+          }
+        }
+      },
+      "$comment": "Enforced structurally rather than stated in prose. This is the field buyers price against."
+    },
+    {
+      "title": "A viewable impression must carry its evidence",
+      "if": {
+        "properties": {
+          "viewable": {
+            "const": true
+          }
+        },
+        "required": [
+          "viewable"
+        ]
+      },
+      "then": {
+        "required": [
+          "visible_ms"
+        ]
+      },
+      "$comment": "An unevidenced viewability claim is a self-report and belongs under method `declared`."
+    }
+  ]
+}

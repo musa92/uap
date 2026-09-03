@@ -1,0 +1,21 @@
+{
+  "default": true,
+  "MD013": false,
+  "MD024": {
+    "siblings_only": true
+  },
+  "MD033": {
+    "allowed_elements": [
+      "br",
+      "sub",
+      "sup"
+    ]
+  },
+  "MD034": false,
+  "MD041": false,
+  "MD046": {
+    "style": "fenced"
+  },
+  "MD060": false,
+  "_comment": "MD060 enforces consistent spacing around table pipes. The specification uses compact delimiter rows throughout; reformatting 108 cells changes no rendered output and would obscure real diffs. Every other default rule is enabled."
+}

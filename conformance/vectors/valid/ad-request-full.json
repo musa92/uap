@@ -1,0 +1,226 @@
+{
+  "id": "01J9X2K4M7N8P0Q1R2S3T4U5V6",
+  "uap_version": "2026-09-02",
+  "test": 0,
+  "integrity": {
+    "organic_answer_digest": "sha256:c1d0a3f5e7b9d1c3a5f7e9b1d3c5a7f9e1b3d5c7a9f1e3b5d7c9a1f3e5b7d9c1",
+    "committed_at": "2026-09-02T14:30:11Z",
+    "holdout_eligible": true
+  },
+  "placements": [
+    {
+      "placement_id": "pl_post_answer_card",
+      "tag_id": "kimi-chat-web/post-answer/1",
+      "floor_cpm_micros": 20000000,
+      "currency": "USD",
+      "expires_in_s": 300,
+      "private_auction": 0,
+      "placement": {
+        "placement_id": "pl_post_answer_card",
+        "surface": {
+          "type": "chat",
+          "modality": [
+            "text",
+            "image"
+          ],
+          "renderer": "markdown",
+          "client": "web",
+          "attested": true
+        },
+        "position": "post_answer",
+        "format": "sponsored_card",
+        "constraints": {
+          "max_chars": 280,
+          "max_assets": 1,
+          "max_actions": 2,
+          "allows_link": true,
+          "allows_tool_offer": false
+        },
+        "disclosure": {
+          "required": true,
+          "label": "Sponsored",
+          "placement": "leading"
+        },
+        "floor_cpm_micros": 20000000,
+        "max_ads": 1
+      },
+      "deals": [
+        {
+          "deal_id": "deal_wpp_q4_travel",
+          "kind": "preferred",
+          "floor_cpm_micros": 55000000,
+          "currency": "USD",
+          "seats": [
+            "wpp-seat-11",
+            "omnicom-seat-04"
+          ],
+          "advertiser_domains": [
+            "acme.example",
+            "globex.example"
+          ],
+          "expires_at": "2026-12-31T23:59:59Z"
+        }
+      ],
+      "metrics": [
+        {
+          "type": "ctr",
+          "value": 0.021,
+          "vendor": "uax.example.com"
+        },
+        {
+          "type": "viewability",
+          "value": 0.83,
+          "vendor": "measure.example.org"
+        },
+        {
+          "type": "dwell_ms",
+          "value": 3400
+        }
+      ]
+    }
+  ],
+  "inference": {
+    "model_id": "hf:moonshotai/Kimi-K2-Instruct",
+    "weights_digest": "sha256:9f2c4a6e8b0d2f4a6c8e0b2d4f6a8c0e2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a",
+    "steward_id": "steward.moonshot.example",
+    "serving_stack": "vllm/0.9.2",
+    "quantization": "fp8",
+    "entity_id": "node.provider.example",
+    "supply_agent_id": "ssp.example.com",
+    "trust_tier": 2
+  },
+  "surface": {
+    "type": "chat",
+    "client": "web",
+    "renderer": "markdown",
+    "modality": [
+      "text",
+      "image"
+    ],
+    "locale": "en-US",
+    "geo": {
+      "granularity": "country",
+      "country": "US"
+    },
+    "attested": true
+  },
+  "context": {
+    "signal_version": "uap.intent/1.0",
+    "signal_class": "coarse",
+    "intents": [
+      {
+        "id": "travel.accommodation",
+        "confidence": 0.8
+      },
+      {
+        "id": "travel.destination",
+        "confidence": 0.6
+      }
+    ],
+    "commercial_intent": 0.6,
+    "turn": {
+      "index_bucket": "2-5",
+      "is_followup": true
+    },
+    "locale": "en-US",
+    "geo": {
+      "granularity": "country",
+      "value": "US"
+    },
+    "surface_hint": "chat",
+    "safety": {
+      "sensitive_category": false,
+      "brand_risk": "low"
+    },
+    "embedding_bucket": null,
+    "k_cohort_size_estimate": 12400
+  },
+  "session": {
+    "turn_index_bucket": "2-5",
+    "is_followup": true,
+    "ads_shown_this_conversation": 0
+  },
+  "auction": {
+    "mechanism": "uap.auction.second_price",
+    "currency": "USD",
+    "timeout_ms": 80,
+    "objective": "reach",
+    "seats_blocked": [
+      "seat-known-bad-actor"
+    ]
+  },
+  "policy": {
+    "blocked_advertisers": [
+      "competitor.example"
+    ],
+    "blocked_categories": [
+      "gambling",
+      "alcohol",
+      "crypto_speculation"
+    ],
+    "category_taxonomy": "uap.category/1.0",
+    "allowed_formats": [
+      "sponsored_card",
+      "sponsored_link"
+    ],
+    "brand_suitability": {
+      "arms": "floor",
+      "hate_speech": "floor",
+      "terrorism": "floor",
+      "adult": "floor",
+      "debated_social_issue": "medium",
+      "crime": "low"
+    }
+  },
+  "regs": {
+    "gpp": "DBABMA~1YNN",
+    "gpp_sid": [
+      7
+    ],
+    "gdpr": 0,
+    "coppa": 0,
+    "dsa": {
+      "required": 0,
+      "pubrender": 1,
+      "datatopub": 1
+    }
+  },
+  "source": {
+    "transaction_id": "tx_7f3c9a2b1d4e6f8a",
+    "final_decision": 1,
+    "payment_chain": "uax.example.com:node_7712",
+    "supply_chain": {
+      "complete": true,
+      "ver": "1.0",
+      "nodes": [
+        {
+          "asi": "uax.example.com",
+          "sid": "node_7712",
+          "hp": 1,
+          "rid": "01J9X2K4M7N8P0Q1R2S3T4U5V6",
+          "role": "serving_node",
+          "trust_tier": 2,
+          "anchor": {
+            "type": "model_steward",
+            "reference": "https://steward.moonshot.example/.well-known/uap-model",
+            "verified_at": "2026-09-02T00:00:00Z"
+          }
+        },
+        {
+          "asi": "uax.example.com",
+          "sid": "ssp_0041",
+          "hp": 1,
+          "name": "Example Supply Agent",
+          "domain": "ssp.example.com",
+          "role": "supply_agent",
+          "trust_tier": 2,
+          "anchor": {
+            "type": "domain",
+            "reference": "https://uax.example.com/.well-known/uap-sellers.json",
+            "verified_at": "2026-09-02T00:00:00Z"
+          }
+        }
+      ]
+    }
+  }
+}

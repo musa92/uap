@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/uap.json",
+  "title": "UAP Metadata",
+  "description": "Protocol metadata for discovery manifests and responses. Mirrors the UCP entity/registry pattern so that a participant implementing both protocols shares one discovery code path.",
+
+  "$defs": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Version identifier in YYYY-MM-DD format. UAP has no semantic version numbers; a newer date MUST be backward compatible for 12 months or carry a distinct capability name."
+    },
+
+    "version_constraint": {
+      "type": "object",
+      "description": "Version range requirement with minimum and optional maximum.",
+      "properties": {
+        "min": { "$ref": "#/$defs/version", "description": "Minimum required version (inclusive)." },
+        "max": { "$ref": "#/$defs/version", "description": "Maximum compatible version (inclusive). When absent, no upper bound." }
+      },
+      "required": ["min"],
+      "additionalProperties": true
+    },
+
+    "role": {
+      "type": "string",
+      "enum": ["serving_node", "surface", "supply_agent", "exchange", "demand_agent", "advertiser", "model_steward", "measurement_agent"],
+      "description": "The acting role for a message. A deployment MAY implement several roles; every request declares the one it is acting as. See SPEC.md §2."
+    },
+
+    "profile": {
+      "type": "string",
+      "enum": ["uap.core", "uap.decision.local", "uap.decision.hosted", "uap.decision.hybrid", "uap.measure", "uap.attest", "uap.settle", "uap.commerce", "uap.supplychain"],
+      "description": "Conformance profile. uap.core is REQUIRED by all others. See SPEC.md §3."
+    },
+
+    "entity": {
+      "type": "object",
+      "description": "Shared foundation for all UAP entities (capabilities, services, handlers).",
+      "required": ["version"],
+      "properties": {
+        "version": { "$ref": "#/$defs/version" },
+        "spec": { "type": "string", "format": "uri", "description": "URL to the human-readable specification section." },
+        "schema": { "type": "string", "format": "uri", "description": "URL to the JSON Schema defining this entity's payloads." },
+        "id": { "type": "string", "maxLength": 256, "description": "Instance identifier, to disambiguate multiple configurations of the same entity." },
+        "config": { "type": "object", "additionalProperties": true, "description": "Entity-specific configuration. Structure defined by the entity's own schema." }
+      }
+    },
+
+    "members": {
+      "type": "object",
+      "description": "Members of the reserved `uap` protocol object. Open for forward compatibility: consumers MUST ignore unrecognized members, and every defined member MUST be safe to ignore — a participant that does not process it loses that member's benefit, never correctness.",
+      "properties": {
+        "map_order": {
+          "type": "object",
+          "description": "Preferred key order for map-valued fields in the annotated scope. Advisory only.",
+          "additionalProperties": { "type": "array", "items": { "type": "string" } },
+          "uap_request": "omit"
+        },
+        "integrity": {
+          "$ref": "common/types/integrity_assertion.json",
+          "description": "Answer-integrity assertions travelling with an object. Never safe to ignore at settlement, but safe to ignore for rendering.",
+          "uap_request": "optional"
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "capabilities_registry": {
+      "type": "object",
+      "description": "Capabilities keyed by reverse-domain name. Each value is an array so that multiple versions or configurations may be declared simultaneously.",
+      "propertyNames": { "$ref": "common/types/reverse_domain_name.json" },
+      "additionalProperties": { "type": "array", "items": { "$ref": "capability.json#/$defs/base" }, "minItems": 1 }
+    },
+
+    "services_registry": {
+      "type": "object",
+      "description": "Services keyed by reverse-domain name.",
+      "propertyNames": { "$ref": "common/types/reverse_domain_name.json" },
+      "additionalProperties": { "type": "array", "items": { "$ref": "service.json#/$defs/base" }, "minItems": 1 }
+    },
+
+    "payout_handlers_registry": {
+      "type": "object",
+      "description": "Payout handlers keyed by reverse-domain name, e.g. dev.uap.payout.ap2, com.stripe.connect. Mirrors UCP's payment_handlers registry.",
+      "propertyNames": { "$ref": "common/types/reverse_domain_name.json" },
+      "additionalProperties": { "type": "array", "items": { "$ref": "settlement/payout_handler.json#/$defs/base" }, "minItems": 1 }
+    },
+
+    "base": {
+      "type": "object",
+      "description": "Base UAP metadata carried in the root `uap` envelope of a manifest or response.",
+      "required": ["version"],
+      "properties": {
+        "version": { "$ref": "#/$defs/version" },
+        "status": { "type": "string", "enum": ["success", "error"], "default": "success" },
+        "capabilities": { "$ref": "#/$defs/capabilities_registry" },
+        "services": { "$ref": "#/$defs/services_registry" },
+        "payout_handlers": { "$ref": "#/$defs/payout_handlers_registry" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

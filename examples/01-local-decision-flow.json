@@ -1,0 +1,122 @@
+{
+  "_note": "Profile L end-to-end trace. Nothing derived from the conversation crosses the network; the only outbound calls are a scheduled bundle fetch and a delayed, batched receipt upload.",
+
+  "step_1_bundle_sync": {
+    "_when": "hourly, on a fixed schedule, not on demand",
+    "request": {
+      "method": "GET",
+      "url": "https://uax.example.com/uap/v1/bundles?formats=sponsored_card&locales=en-US&max_bytes=2097152",
+      "headers": {
+        "UAP-Agent": "node.self-hosted.example; role=serving_node; profile=uap.core,uap.decision.local,uap.measure; v=2026-09-02",
+        "UAP-Request-Id": "01J9X0000000000000000000A1"
+      }
+    },
+    "response_excerpt": {
+      "bundle_id": "bn_2026w36_a",
+      "expires_at": "2026-09-03T00:00:00Z",
+      "taxonomy_version": "uap.intent/1.0",
+      "floor_cpm_micros": 10000000,
+      "line_items": [
+        {
+          "line_item_id": "li_991",
+          "advertiser": { "id": "brand.acme.example", "display_name": "Acme Travel" },
+          "targeting": {
+            "all": [
+              { "intent_any": ["travel.accommodation.hotel", "travel.destination.japan"] },
+              { "commercial_intent_gte": 0.5 },
+              { "locale_any": ["en-US", "en-GB"] }
+            ]
+          },
+          "pricing": { "model": "cpm", "bid_cpm_micros": 62000000 },
+          "pacing": { "node_share_impressions": 40, "smoothing": "even" },
+          "frequency_cap": { "per_conversation": 1 },
+          "creatives": [{ "creative_id": "cr_884", "content_digest": "sha256:5b7e1f9c2a4d8e6b0c3f5a7d9e1b3c5f7a9d1e3b5c7f9a1d3e5b7c9f1a3d5e7b" }]
+        },
+        {
+          "line_item_id": "li_772",
+          "advertiser": { "id": "brand.globex.example", "display_name": "Globex Rail" },
+          "targeting": { "all": [{ "intent_any": ["travel.transport.rail"] }] },
+          "pricing": { "model": "cpc", "bid_cpc_micros": 420000 }
+        }
+      ],
+      "signature": { "kid": "uax-ed25519-2026-08", "alg": "EdDSA", "value": "…" }
+    }
+  },
+
+  "step_2_turn": {
+    "_when": "user sends a turn; ZERO network calls in this step",
+    "_order": "the model generates FIRST; selection cannot reach the generate() call",
+    "local_context_signal": {
+      "_note": "signal_class local_only — never serialised off-device; shown here only to illustrate what the local auction sees",
+      "signal_version": "uap.intent/1.0",
+      "signal_class": "local_only",
+      "intents": [
+        { "id": "travel.accommodation.hotel", "confidence": 0.81 },
+        { "id": "travel.destination.japan", "confidence": 0.63 }
+      ],
+      "commercial_intent": 0.74,
+      "locale": "en-US",
+      "safety": { "sensitive_category": false, "brand_risk": "low" }
+    },
+    "local_auction": [
+      { "line_item_id": "li_991", "ecpm_micros": 62000000, "outcome": "won" },
+      { "line_item_id": "li_772", "ecpm_micros": 0, "outcome": "eliminated_targeting" }
+    ],
+    "clearing": { "price_cpm_micros": 41000001, "mechanism": "uap.auction.second_price",
+                  "_note": "li_772 is eliminated on targeting, so the second price is the floor; clears at floor + 1 micro. At USD 41.00 CPM one impression grosses 41000 micros." }
+  },
+
+  "step_3_render": {
+    "composed_output": "…[organic answer, verbatim, unmodified]…\n\n--- Sponsored ---\nAcme Travel — Kyoto ryokan, free cancellation\nTraditional inns from $180/night, cancel up to 24h before.\n[See rooms]",
+    "headers": { "X-UAP-Sponsored": "1" },
+    "_integrity": "the answer bytes above the separator are byte-identical to model output; the creative text was never in the model's context and is not re-fed on the next turn"
+  },
+
+  "step_4_receipt": {
+    "_when": "batched, delayed by a randomised interval, uncorrelated with turn timing",
+    "request": { "method": "POST", "url": "https://uax.example.com/uap/v1/receipts:batch" },
+    "body": {
+      "receipts": [{
+        "receipt_id": "rc_01J9X00000000000000000000B",
+        "decision_id": "dc_local_01J9X0000000000000000000C",
+        "nonce": "n_7f3c9a2b1d4e6f8a0c2e4b6d8f0a2c4e",
+        "placement_id": "pl_post_answer_card",
+        "creative_digest": "sha256:5b7e1f9c2a4d8e6b0c3f5a7d9e1b3c5f7a9d1e3b5c7f9a1d3e5b7c9f1a3d5e7b",
+        "rendered_at": "2026-09-02T14:30:13Z",
+        "viewability": { "rendered": true, "visible_ms": 3400, "method": "intersection_observer", "user_present": true },
+        "integrity": {
+          "organic_answer_digest": "sha256:c1d0a3f5e7b9d1c3a5f7e9b1d3c5a7f9e1b3d5c7a9f1e3b5d7c9a1f3e5b7d9c1",
+          "no_decode_influence": true,
+          "ad_excluded_from_context": true,
+          "disclosure_rendered": true
+        },
+        "auction_trace": [
+          { "line_item_id": "li_991", "ecpm_micros": 62000000, "outcome": "won" },
+          { "line_item_id": "li_772", "ecpm_micros": 0, "outcome": "eliminated_targeting" }
+        ],
+        "trust_tier": 1,
+        "signature": { "kid": "surface-ed25519-01", "alg": "EdDSA", "value": "…" }
+      }]
+    },
+    "_exchange_verifies": [
+      "signature chains to an enrolled key",
+      "nonce live and unspent",
+      "creative_digest matches what was issued in bundle bn_2026w36_a",
+      "auction_trace replays against the signed bundle and produces the same winner",
+      "node has not exceeded pacing.node_share_impressions",
+      "receipt-to-decision ratio and dwell distribution within the node's historical envelope"
+    ]
+  },
+
+  "step_5_settlement": {
+    "billing_ref": "br_5521",
+    "gross_micros": 41000,
+    "splits": [
+      { "party": "serving_node", "bps": 5500 },
+      { "party": "supply_agent", "bps": 1000 },
+      { "party": "model_steward", "entity_id": "steward.example.org", "bps": 1500,
+        "_source": "https://steward.example.org/.well-known/uap-model" },
+      { "party": "exchange", "bps": 2000 }
+    ]
+  }
+}

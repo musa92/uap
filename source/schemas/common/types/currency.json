@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/currency.json",
+  "title": "Currency",
+  "description": "ISO 4217 alphabetic currency code. An auction clears in exactly one currency, declared on the request and echoed on every downstream object.",
+  "$comment": "UAP performs no currency conversion. An exchange operating across currencies runs one auction per currency; a cross-currency comparison would require a rate and a rate timestamp that no object in this specification carries.",
+  "type": "string",
+  "pattern": "^[A-Z]{3}$",
+  "examples": [
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY"
+  ]
+}

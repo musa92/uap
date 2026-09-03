@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/supply/impression_receipt.json",
+  "title": "ImpressionReceipt",
+  "description": "The billable artefact, emitted and signed by the surface. A claim without a verifiable receipt is not paid.",
+  "$comment": "Signed by the surface, not the serving node. The node has both the means and the motive to inflate its own impression counts, so it is not permitted to sign this object. See SPEC.md §9.1.",
+  "name": "dev.uap.supply.impression_receipt",
+  "version": "2026-09-02",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_id",
+    "decision_id",
+    "nonce",
+    "placement_id",
+    "creative_digest",
+    "rendered_at",
+    "viewability",
+    "integrity",
+    "trust_tier",
+    "signature"
+  ],
+  "properties": {
+    "receipt_id": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "decision_id": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "nonce": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "Single-use, exchange-issued. Binds this receipt to exactly one decision."
+    },
+    "placement_id": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "creative_digest": {
+      "$ref": "../common/types/digest.json"
+    },
+    "rendered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "viewability": {
+      "$ref": "../common/types/viewability.json"
+    },
+    "integrity": {
+      "$ref": "../common/types/integrity_assertion.json"
+    },
+    "auction_trace": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "description": "REQUIRED in Profile L. Replayable by the exchange that issued the bundle.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "line_item_id",
+          "ecpm_micros",
+          "outcome"
+        ],
+        "properties": {
+          "line_item_id": {
+            "type": "string"
+          },
+          "ecpm_micros": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outcome": {
+            "enum": [
+              "won",
+              "lost",
+              "eliminated_targeting",
+              "eliminated_policy",
+              "eliminated_floor",
+              "eliminated_pacing",
+              "eliminated_frequency"
+            ]
+          }
+        }
+      },
+      "$comment": "REQUIRED in Profile L. The exchange wrote the bundle and now holds the trace and the signal-independent inputs, so it can replay the local auction. A node whose traces do not reproduce is demoted or de-listed."
+    },
+    "trust_tier": {
+      "type": "integer",
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "attestation": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "type",
+        "evidence",
+        "nonce"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "tee",
+            "platform",
+            "sw_transparency"
+          ]
+        },
+        "platform": {
+          "type": "string"
+        },
+        "measurement": {
+          "type": "string"
+        },
+        "binary": {
+          "type": "object"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "nonce": {
+          "type": "string"
+        }
+      }
+    },
+    "signature": {
+      "$ref": "../common/types/signature.json"
+    },
+    "local_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle_id",
+        "line_item_id",
+        "impression_index"
+      ],
+      "description": "Present in Profile L. The inputs the exchange uses to reconstruct the nonce.",
+      "$comment": "Hosted decisioning issues an unguessable nonce with the Decision. Profile L has no round trip, so the nonce is derived instead:\n\n  nonce = \"n_\" + SHA256(tag || bundle_id || entity_id || line_item_id || impression_index)\n\nThe exchange recomputes it and rejects any receipt whose nonce does not derive. `entity_id` is deliberately absent from this object: the exchange resolves it from the receipt's signing key, so a node cannot derive a valid nonce for supply it is not enrolled as.\n\nThis nonce is not a secret and its security does not depend on being one. A dishonest node is bounded by the surface signature over an enrolled key, single use of the derived nonce, `impression_index` being below the line item's pacing allocation, replay of the auction trace against the signed bundle, and statistical review of the node's delivery history. A node can still claim an impression it did not render, which is true of every counting scheme without a trusted client, and is why SPEC.md §9.3 prices unattested supply below attested supply rather than claiming the problem is solved.",
+      "properties": {
+        "bundle_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "The signed bundle the winning line item came from."
+        },
+        "line_item_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "The winning line item. Must match the trace entry with outcome 'won'."
+        },
+        "impression_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000,
+          "description": "Zero-based counter for this line item within this bundle.",
+          "$comment": "Must be below the line item's pacing.node_share_impressions. This is what bounds a node that mints nonces by incrementing the counter."
+        }
+      }
+    }
+  }
+}

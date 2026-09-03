@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/supply/context_signal.json",
+  "title": "ContextSignal",
+  "description": "The only conversation-derived data permitted to leave a serving node. Every member is a closed enumeration or a bounded numeric.",
+  "$comment": "Defined by SPEC.md §6. There is deliberately no free-text member anywhere in this schema, and scripts/validate.py asserts that mechanically: an unbounded string here is an I1 breach, not a style question.\n\n`local_only` is absent from the signal_class enum by design. A local-only signal is the richer form the node's own classifier produces and is never serialized off-device, so it has no wire representation. An instance carrying signal_class 'local_only' is by construction not a wire object and MUST NOT validate against this schema.",
+  "name": "dev.uap.supply.context_signal",
+  "version": "2026-09-02",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "signal_version",
+    "signal_class"
+  ],
+  "properties": {
+    "signal_version": {
+      "type": "string",
+      "pattern": "^uap\\.intent/[0-9]+\\.[0-9]+$"
+    },
+    "signal_class": {
+      "enum": [
+        "none",
+        "coarse",
+        "standard"
+      ],
+      "description": "The egress class of this signal.",
+      "$comment": "  none      no signal; untargeted or sponsorship inventory only\n  coarse    <=3 intent ids at depth <=2, commercial_intent bucketed to 0.1, country geo\n  standard  <=5 intent ids at full depth, turn bucket, safety; requires exchange opt-in\nSee SPEC.md §6.3. `local_only` is intentionally not a member; see the schema $comment."
+    },
+    "intents": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "confidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+){0,3}$"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "multipleOf": 0.01
+          }
+        }
+      }
+    },
+    "commercial_intent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "multipleOf": 0.01
+    },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "index_bucket": {
+          "enum": [
+            "0",
+            "1",
+            "2-5",
+            "6+"
+          ]
+        },
+        "is_followup": {
+          "type": "boolean"
+        }
+      }
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+    },
+    "geo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "granularity",
+        "value"
+      ],
+      "properties": {
+        "granularity": {
+          "enum": [
+            "none",
+            "country",
+            "region"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 8,
+          "pattern": "^[A-Z]{2}(-[A-Z0-9]{1,3})?$",
+          "description": "ISO 3166 country or subdivision code."
+        }
+      }
+    },
+    "surface_hint": {
+      "enum": [
+        "chat",
+        "agent_tool_result",
+        "voice",
+        "ide",
+        "search_answer",
+        "embedded_widget"
+      ]
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sensitive_category": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether the turn falls in a suppressing category. Three-valued: true suppresses, false permits, null means undetermined.",
+          "$comment": "null and true are treated identically by a conformant node. source/taxonomy/sensitive-1.0.json requires that a category the classifier cannot confidently exclude is treated as sensitive, and a two-valued flag cannot express that: it collapses 'no evidence found' into 'confidently not sensitive', which is fail-open.\n\nThis field exists only to suppress. It MUST NOT be transmitted as a targeting signal, and a suppressed turn produces no AdRequest at all, so in practice the value that reaches an exchange is always false."
+        },
+        "brand_risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "classifier_id": {
+          "$ref": "../common/types/reverse_domain_name.json",
+          "description": "Identifier of the classifier that produced this signal."
+        },
+        "production_ready": {
+          "type": "boolean",
+          "description": "Whether the classifier has been evaluated against the sensitive taxonomy.",
+          "$comment": "A node MUST refuse to monetise on the output of a classifier that does not assert this, unless the operator has explicitly accepted the risk."
+        }
+      }
+    },
+    "embedding_bucket": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Locality-sensitive hash bucket over a publicly published projection matrix.",
+      "$comment": "The matrix is published so third parties can audit invertibility. Suppressed when the k-anonymity floor of SPEC.md §6.5 is not satisfied."
+    },
+    "k_cohort_size_estimate": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

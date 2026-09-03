@@ -1,0 +1,286 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "UAP Supply Service",
+    "version": "2026-09-02",
+    "summary": "Endpoints an exchange exposes to serving nodes, surfaces and supply agents.",
+    "description": "The normative REST binding of the Universal Ads Protocol supply side.\n\nServe-time decisioning has a hard budget of p99 under 80 ms for POST /decisions, measured exchange-side. Exchanges SHOULD publish their observed p99 in the manifest. A node MUST treat a timeout as a no-fill and render nothing, never a placeholder that later swaps in.\n\nAll requests other than the .well-known documents carry HTTP Message Signatures (RFC 9421) over at minimum @method, @target-uri, content-digest, uap-agent, uap-request-id and created.",
+    "license": { "name": "Apache-2.0", "identifier": "Apache-2.0" },
+    "contact": { "name": "UAP", "url": "https://github.com/musa92/uap" }
+  },
+  "servers": [{ "url": "https://uax.example.com", "description": "An exchange" }],
+  "tags": [
+    { "name": "discovery", "description": "Unauthenticated, cacheable documents." },
+    { "name": "decisioning", "description": "Serve-time selection." },
+    { "name": "measurement", "description": "Receipts and engagement events." },
+    { "name": "settlement", "description": "Money." }
+  ],
+  "paths": {
+    "/.well-known/uap": {
+      "get": {
+        "tags": ["discovery"], "operationId": "getManifest", "security": [],
+        "summary": "Participant manifest",
+        "description": "Declares entity identity, conformance profiles, services, auction parameters and published privacy floors. Unauthenticated and cacheable.",
+        "responses": {
+          "200": { "description": "The manifest.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Manifest" } } } } }
+      }
+    },
+    "/.well-known/uap-sellers.json": {
+      "get": {
+        "tags": ["discovery"], "operationId": "getSellers", "security": [],
+        "summary": "Authorized seller declaration",
+        "description": "Every entity this system is authorized to pay. A SupplyChain node whose asi and sid pair does not resolve here is unauthorized supply and buyers SHOULD discard it.",
+        "responses": {
+          "200": { "description": "The seller declaration.",
+            "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/supply/sellers.json" } } } } }
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "tags": ["discovery"], "operationId": "getJwks", "security": [],
+        "summary": "Signing keys",
+        "description": "Verifiers MUST accept a signature from any key present at the signature's created time, refetching at most once per 60 seconds.",
+        "responses": {
+          "200": { "description": "JWK Set.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/JwkSet" } } } } }
+      }
+    },
+
+    "/uap/v1/decisions": {
+      "post": {
+        "tags": ["decisioning"], "operationId": "createDecision",
+        "summary": "Run a hosted auction",
+        "description": "Hosted decisioning. The exchange fans out to demand, runs the auction and returns a signed Decision. Returns 204 rather than an error when nothing is eligible; a no-fill is not a failure.",
+        "parameters": [
+          { "$ref": "#/components/parameters/UapAgent" },
+          { "$ref": "#/components/parameters/UapRequestId" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": { "required": true,
+          "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/supply/ad_request.json" } } } },
+        "responses": {
+          "200": { "description": "A signed Decision.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Decision" } } } },
+          "204": { "description": "No eligible bid. Render nothing." },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" },
+          "403": { "$ref": "#/components/responses/Problem" },
+          "429": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+
+    "/uap/v1/bundles": {
+      "get": {
+        "tags": ["decisioning"], "operationId": "getBundle",
+        "summary": "Fetch a signed campaign bundle",
+        "description": "Local decisioning. Bundle variants are coarse by construction and each is served to at least the published k-anonymity floor of nodes, so that which bundle a node fetches reveals nothing about its audience. Nodes SHOULD fetch on a fixed schedule rather than on demand, and SHOULD use a CDN or fetch proxy where available.",
+        "parameters": [
+          { "$ref": "#/components/parameters/UapAgent" },
+          { "$ref": "#/components/parameters/UapRequestId" },
+          { "name": "formats", "in": "query", "schema": { "type": "string" }, "description": "Comma-separated formats the node can render." },
+          { "name": "locales", "in": "query", "schema": { "type": "string" }, "description": "Comma-separated BCP 47 locales." },
+          { "name": "max_bytes", "in": "query", "schema": { "type": "integer", "minimum": 65536 }, "description": "Largest bundle the node will accept." }
+        ],
+        "responses": {
+          "200": { "description": "A signed CampaignBundle.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CampaignBundle" } } } },
+          "304": { "description": "Cached bundle is still current." },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+
+    "/uap/v1/receipts:batch": {
+      "post": {
+        "tags": ["measurement"], "operationId": "submitReceipts",
+        "summary": "Upload signed impression receipts",
+        "description": "Receipts MUST be batched, delayed by a randomised interval, and MUST NOT correlate with turn timing. Each is verified independently; a rejected receipt does not invalidate the batch. Every rejection carries an itemised reason, because a rejection rate reported without reasons is how publisher trust is lost.",
+        "parameters": [
+          { "$ref": "#/components/parameters/UapAgent" },
+          { "$ref": "#/components/parameters/UapRequestId" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": { "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object", "required": ["receipts"], "additionalProperties": false,
+            "properties": { "receipts": { "type": "array", "minItems": 1, "maxItems": 1000,
+              "items": { "$ref": "https://uap.dev/schemas/supply/impression_receipt.json" } } } } } } },
+        "responses": {
+          "200": { "description": "Per-receipt verdicts.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReceiptVerdicts" } } } },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "401": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+
+    "/uap/v1/events": {
+      "post": {
+        "tags": ["measurement"], "operationId": "submitEvent",
+        "summary": "Report an engagement event",
+        "description": "click, dismiss or expand. Conversions are reported by the advertiser or through an AP2 payment mandate reference, never by the serving node.",
+        "parameters": [
+          { "$ref": "#/components/parameters/UapAgent" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": { "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Event" } } } },
+        "responses": {
+          "202": { "description": "Accepted." },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+
+    "/uap/v1/settlements/{period}": {
+      "get": {
+        "tags": ["settlement"], "operationId": "getSettlement",
+        "summary": "Settlement for a period",
+        "description": "Returns the AP2 settlement mandate, the split table, verified and rejected receipt counts, and the itemised rejection reasons.",
+        "parameters": [
+          { "$ref": "#/components/parameters/UapAgent" },
+          { "name": "period", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$" } }
+        ],
+        "responses": {
+          "200": { "description": "Settlement record.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Settlement" } } } },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    }
+  },
+
+  "components": {
+    "securitySchemes": {
+      "httpMessageSignature": {
+        "type": "http", "scheme": "signature",
+        "description": "HTTP Message Signatures (RFC 9421). Ed25519 REQUIRED to implement, ES256 OPTIONAL. Keys resolve through the manifest keys URL."
+      },
+      "oauth2": {
+        "type": "oauth2",
+        "description": "Commercial identity, separate from cryptographic identity. An unenrolled key is trust tier 0.",
+        "flows": { "clientCredentials": { "tokenUrl": "https://uax.example.com/oauth/token", "scopes": {
+          "uap.decision": "Request decisions", "uap.bundle": "Fetch bundles",
+          "uap.receipt": "Submit receipts", "uap.settle": "Read settlements" } } }
+      }
+    },
+    "parameters": {
+      "UapAgent": { "name": "UAP-Agent", "in": "header", "required": true,
+        "schema": { "type": "string" },
+        "description": "entity-id; role=<role>; profile=<profiles>; v=<uap_version>",
+        "example": "node.example; role=serving_node; profile=uap.core,uap.decision.local; v=2026-09-02" },
+      "UapRequestId": { "name": "UAP-Request-Id", "in": "header", "required": true,
+        "schema": { "type": "string" }, "description": "UUIDv7, unique per request, echoed in the response." },
+      "IdempotencyKey": { "name": "Idempotency-Key", "in": "header", "required": true,
+        "schema": { "type": "string" }, "description": "Required on non-idempotent methods. 24 hour replay window." }
+    },
+    "responses": {
+      "Problem": { "description": "RFC 9457 problem document with a UAP code.",
+        "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object", "required": ["type", "title", "status", "code"],
+        "properties": {
+          "type": { "type": "string", "format": "uri" },
+          "title": { "type": "string" },
+          "status": { "type": "integer" },
+          "code": { "type": "string", "enum": [
+            "UAP_UNSUPPORTED_VERSION", "UAP_SIGNAL_CLASS_EXCEEDED", "UAP_SIGNAL_MALFORMED",
+            "UAP_K_ANON_FLOOR", "UAP_SIGNATURE_INVALID", "UAP_KEY_NOT_ENROLLED",
+            "UAP_TIER_INSUFFICIENT", "UAP_MODEL_POLICY_FORBIDS", "UAP_NONCE_SPENT",
+            "UAP_BUNDLE_EXPIRED", "UAP_PACING_EXCEEDED"] },
+          "detail": { "type": "string" },
+          "request_id": { "type": "string" },
+          "retryable": { "type": "boolean" }
+        }
+      },
+      "Manifest": {
+        "type": "object", "required": ["uap_version", "entity", "profiles"],
+        "properties": {
+          "uap_version": { "$ref": "https://uap.dev/schemas/uap.json#/$defs/version" },
+          "entity": { "type": "object", "required": ["id", "role"], "properties": {
+            "id": { "type": "string" },
+            "role": { "type": "array", "items": { "$ref": "https://uap.dev/schemas/uap.json#/$defs/role" } },
+            "legal_name": { "type": "string" }, "jurisdiction": { "type": "string" },
+            "contact": { "type": "string" } } },
+          "profiles": { "type": "array", "items": { "$ref": "https://uap.dev/schemas/uap.json#/$defs/profile" } },
+          "services": { "type": "array", "items": { "$ref": "https://uap.dev/schemas/service.json#/$defs/base" } },
+          "auction": { "type": "object", "properties": {
+            "mechanisms": { "type": "array", "items": { "type": "string" } },
+            "currencies": { "type": "array", "items": { "$ref": "https://uap.dev/schemas/common/types/currency.json" } },
+            "default_floor_cpm_micros": { "$ref": "https://uap.dev/schemas/common/types/cpm.json" } } },
+          "privacy": { "type": "object", "properties": {
+            "max_context_signal_class": { "type": "string", "enum": ["none", "coarse", "standard"] },
+            "k_anonymity_floor": { "type": "integer", "minimum": 0 },
+            "retention_days": { "type": "integer", "minimum": 0 } } },
+          "keys": { "type": "string", "format": "uri" },
+          "policy": { "type": "string", "format": "uri" }
+        }
+      },
+      "JwkSet": { "type": "object", "required": ["keys"], "properties": { "keys": {
+        "type": "array", "items": { "type": "object", "required": ["kty", "crv", "kid", "x"], "properties": {
+          "kty": { "const": "OKP" }, "crv": { "const": "Ed25519" },
+          "kid": { "type": "string" }, "x": { "type": "string" },
+          "alg": { "const": "EdDSA" }, "use": { "const": "sig" } } } } } },
+      "Decision": {
+        "type": "object", "required": ["decision_id", "issued_at", "expires_at", "placements", "signature"],
+        "properties": {
+          "decision_id": { "type": "string" }, "request_id": { "type": "string" },
+          "issued_at": { "type": "string", "format": "date-time" },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "placements": { "type": "array", "items": { "type": "object",
+            "required": ["placement_id", "creative", "clearing", "nonce"], "properties": {
+              "placement_id": { "type": "string" },
+              "creative": { "$ref": "https://uap.dev/schemas/demand/creative.json" },
+              "clearing": { "type": "object", "properties": {
+                "price_cpm_micros": { "$ref": "https://uap.dev/schemas/common/types/cpm.json" },
+                "currency": { "$ref": "https://uap.dev/schemas/common/types/currency.json" },
+                "mechanism": { "type": "string" } } },
+              "nonce": { "type": "string", "description": "Single use. Binds this decision to exactly one impression." },
+              "click_id": { "type": "string" },
+              "deal_id": { "type": "string" } } } },
+          "signature": { "$ref": "https://uap.dev/schemas/common/types/signature.json" } }
+      },
+      "CampaignBundle": {
+        "type": "object", "required": ["bundle_id", "issued_at", "expires_at", "line_items", "signature"],
+        "properties": {
+          "bundle_id": { "type": "string" },
+          "issued_at": { "type": "string", "format": "date-time" },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "taxonomy_version": { "type": "string" },
+          "floor_cpm_micros": { "$ref": "https://uap.dev/schemas/common/types/cpm.json" },
+          "line_items": { "type": "array", "items": { "type": "object" } },
+          "signature": { "$ref": "https://uap.dev/schemas/common/types/signature.json" } }
+      },
+      "ReceiptVerdicts": {
+        "type": "object", "required": ["results"], "properties": { "results": {
+          "type": "array", "items": { "type": "object",
+            "required": ["receipt_id", "billable", "reason"], "properties": {
+              "receipt_id": { "type": "string" }, "billable": { "type": "boolean" },
+              "reason": { "type": "string" },
+              "gross_micros": { "$ref": "https://uap.dev/schemas/common/types/micros.json" } } } } }
+      },
+      "Event": {
+        "type": "object", "required": ["type", "click_id", "occurred_at"],
+        "properties": {
+          "type": { "type": "string", "enum": ["click", "dismiss", "expand"] },
+          "click_id": { "type": "string" },
+          "occurred_at": { "type": "string", "format": "date-time" } }
+      },
+      "Settlement": {
+        "type": "object", "required": ["period", "splits"],
+        "properties": {
+          "period": { "type": "string" },
+          "verified_receipts": { "type": "integer" },
+          "rejected_receipts": { "type": "integer" },
+          "rejection_reasons": { "type": "object", "additionalProperties": { "type": "integer" } },
+          "splits": { "type": "array", "items": { "type": "object" } },
+          "mandate": { "type": "object", "description": "AP2 settlement mandate as a W3C Verifiable Credential." } }
+      }
+    }
+  },
+  "security": [{ "httpMessageSignature": [] }, { "oauth2": [] }]
+}

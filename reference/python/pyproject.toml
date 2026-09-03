@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uap-protocol"
+version = "2026.9.2"
+description = "Reference implementation of UAP, the Universal Ads Protocol for open-weights LLM serving."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "UAP contributors" }]
+keywords = ["uap", "advertising", "llm", "protocol", "privacy"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Internet :: WWW/HTTP",
+]
+
+# Deliberately empty. The reference implementation runs on the standard library
+# alone so that it can be vendored into a serving node without pulling a
+# dependency tree into the inference path. `cryptography`, if installed, is
+# detected at import time and used to accelerate Ed25519 (see uap/crypto/ed25519.py).
+dependencies = []
+
+[project.optional-dependencies]
+fast = ["cryptography>=42"]
+dev = ["pytest>=8", "jsonschema>=4"]
+
+[project.urls]
+Homepage = "https://github.com/musa92/uap"
+Repository = "https://github.com/musa92/uap"
+Specification = "https://github.com/musa92/uap/blob/main/SPEC.md"
+Issues = "https://github.com/musa92/uap/issues"
+
+[project.scripts]
+uap = "uap.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["uap*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

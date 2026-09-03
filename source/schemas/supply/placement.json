@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/supply/placement.json",
+  "title": "Placement",
+  "description": "An advertising slot on a generated turn, described by the surface rather than by pixels.",
+  "$comment": "Format ranking by observed market outcome, per docs/documentation/market-context.md §2:\n  sponsored_link at post_answer   REQUIRED to implement; the format that cleared ~USD 60 CPM\n  sponsored_card at post_answer   RECOMMENDED\n  product_offer                   RECOMMENDED with the uap.commerce profile\n  sponsored_action                OPTIONAL; untested in LLM surfaces, highest integrity risk\n  sponsored_suggestion            OPTIONAL, NOT RECOMMENDED; withdrawn after minimal revenue\n\n`position: inline` -- interleaved into the answer body -- is intentionally absent from the position enum. It cannot satisfy I2. Implementations wanting in-body commercial content use post_answer with an explicit structural break.",
+  "name": "dev.uap.supply.placement",
+  "version": "2026-09-02",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "placement_id",
+    "surface",
+    "position",
+    "format",
+    "disclosure"
+  ],
+  "properties": {
+    "placement_id": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "renderer"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "chat",
+            "agent_tool_result",
+            "voice",
+            "ide",
+            "search_answer",
+            "embedded_widget"
+          ]
+        },
+        "modality": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "text",
+              "image",
+              "audio",
+              "video"
+            ]
+          }
+        },
+        "renderer": {
+          "enum": [
+            "markdown",
+            "plaintext",
+            "native",
+            "voice",
+            "structured"
+          ]
+        },
+        "client": {
+          "enum": [
+            "web",
+            "mobile",
+            "desktop",
+            "cli",
+            "api",
+            "device"
+          ]
+        },
+        "attested": {
+          "type": "boolean"
+        }
+      }
+    },
+    "position": {
+      "enum": [
+        "post_answer",
+        "sidebar",
+        "followup_suggestion",
+        "inline_citation",
+        "pre_answer"
+      ],
+      "description": "'inline' (interleaved into the answer body) is intentionally absent: it cannot satisfy the answer-integrity invariant."
+    },
+    "format": {
+      "enum": [
+        "sponsored_link",
+        "sponsored_card",
+        "sponsored_suggestion",
+        "product_offer",
+        "sponsored_action"
+      ]
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_chars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
+        },
+        "max_assets": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "max_actions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "allows_link": {
+          "type": "boolean"
+        },
+        "allows_tool_offer": {
+          "type": "boolean"
+        }
+      }
+    },
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "label"
+      ],
+      "properties": {
+        "required": {
+          "const": true
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "placement": {
+          "enum": [
+            "leading",
+            "trailing",
+            "both"
+          ]
+        }
+      }
+    },
+    "floor_cpm_micros": {
+      "$ref": "../common/types/cpm.json",
+      "description": "Minimum acceptable clearing price for this placement."
+    },
+    "max_ads": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    }
+  }
+}

@@ -1,0 +1,2 @@
+{ "version": "1.0", "contact_email": "protocol@example.com",
+  "sellers": [ { "seller_id": "x", "seller_type": "RESELLER", "anchor_type": "domain" } ] }
