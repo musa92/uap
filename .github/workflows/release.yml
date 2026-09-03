@@ -36,7 +36,7 @@ jobs:
             p {print}
           ' CHANGELOG.md > dist/notes.md
           test -s dist/notes.md || echo "No changelog entry for ${VERSION}." > dist/notes.md
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           body_path: dist/notes.md
           files: dist/*
