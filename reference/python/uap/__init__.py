@@ -25,11 +25,14 @@ from .measurement import assess, meets_mrc
 from .supply_chain import verify_chain
 from .node import Node, Surface, ContextClassifier, KeywordClassifier
 from .exchange import Exchange
+from .demand_client import DemandClient, DemandError
+from .middleware import UAPMiddleware, ExchangeClient
 from . import auction, predicate
 
 __all__ = [
     "UAP_VERSION", "__version__",
     "Node", "Surface", "ContextClassifier", "KeywordClassifier", "Exchange",
+    "DemandClient", "DemandError", "UAPMiddleware", "ExchangeClient",
     "SigningKey", "VerifyingKey", "KeyRing", "sign_object", "verify_object",
     "canonicalize", "serialize",
     "compose", "answer_digest", "strip_ad_block", "commit_answer",

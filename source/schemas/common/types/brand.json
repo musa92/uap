@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/common/types/brand.json",
+  "title": "Brand Manifest",
+  "name": "dev.uap.common.brand",
+  "version": "2026-09-02",
+  "description": "Served at `GET /.well-known/uap-brand` by every advertiser. Establishes which domains an advertiser may link to and who is accountable for the creative.",
+  "$comment": "Referenced by creative review since draft-01 but never defined, which meant the one check that stops click laundering had no schema behind it. An action URL that does not resolve to a domain listed here is rejected at review; redirect chains are followed and re-checked, so a creative cannot be approved against one destination and later serve another.\n\nThis is the advertiser-side counterpart to uap-sellers.json. Together they close the loop: a buyer can see who is selling, and a seller can see who is buying.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["advertiser_id", "legal_name", "verified_domains", "contact"],
+  "properties": {
+    "advertiser_id": { "type": "string", "maxLength": 256, "description": "Stable identifier, matching `advertiser.id` on every creative." },
+    "legal_name": { "type": "string", "maxLength": 256 },
+    "display_name": { "type": "string", "maxLength": 128, "description": "Name shown to users in the disclosure. May differ from the legal name." },
+    "verified_domains": {
+      "type": "array", "minItems": 1, "maxItems": 64,
+      "items": { "type": "string", "maxLength": 256 },
+      "description": "Domains this advertiser may direct clicks to. Subdomains are included.",
+      "$comment": "Verified by the exchange at enrolment, by DNS TXT record or by serving this manifest over TLS at the apex. An unverified domain in an action URL is `url_not_verified_domain` at review."
+    },
+    "contact": { "type": "string", "format": "email" },
+    "jurisdiction": { "type": "string", "maxLength": 16, "description": "ISO 3166 code of the entity's registration." },
+    "identifiers": {
+      "type": "array", "maxItems": 16,
+      "description": "Third-party identity assertions, so an exchange can tie the brand to a contractable entity.",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["name", "value"],
+        "properties": {
+          "name": { "type": "string", "enum": ["TAG-ID", "DUNS", "LEI", "VAT", "EIN"] },
+          "value": { "type": "string", "maxLength": 128 }
+        }
+      }
+    },
+    "categories": {
+      "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 64 },
+      "description": "Categories this advertiser operates in. Sellers block on these."
+    },
+    "keys": { "type": "string", "format": "uri", "description": "JWKS URL. Conversion reports are signed with a key from it." },
+    "policy_contact": { "type": "string", "format": "email", "description": "Where creative rejections and policy appeals are sent." }
+  }
+}

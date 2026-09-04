@@ -99,6 +99,11 @@ instead of reading it from the receipt.
 
 ## Integrating
 
+Two five-minute guides: [monetise a model](docs/documentation/quickstart-provider.md)
+if you serve one, [run a campaign](docs/documentation/quickstart-advertiser.md)
+if you buy. Or `docker compose up` for an exchange, a stand-in model and the
+proxy, wired together.
+
 If you serve a model you are the serving node. If you render to a human you are
 the surface. They are separate because a node signing its own impression counts
 is a claim, not a measurement.
@@ -173,8 +178,11 @@ applied to a turn instead of a page.
 
 ## Status
 
-Draft for public comment. Leaving draft requires two independent interoperating
-implementations; there is one.
+Draft for public comment. §14 requires two independent interoperating
+implementations to leave draft. The serve-time core now has two, in Python and
+JavaScript, written from the specification rather than translated from each
+other, and `make interop` holds them to byte-identical canonicalization,
+signatures, escaping, composition and predicate results.
 
 Implemented: canonicalization, signing, the targeting predicate language, the
 auction, the integrity boundary, receipt verification, settlement splits, and
@@ -218,7 +226,8 @@ SPEC.md               normative specification
 source/schemas/       JSON Schema for every wire object
 source/services/      OpenAPI definition of the REST binding
 source/taxonomy/      intent and sensitive-category taxonomies
-reference/python/     reference implementation and tests
+reference/python/     reference implementation: exchange, buy side, settlement
+reference/typescript/ second implementation: the serve-time core a surface runs
 conformance/          vectors, positive and negative
 examples/             end-to-end traces
 ```

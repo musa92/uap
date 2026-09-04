@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, urlparse
 from .canonical import canonicalize
 from .exchange import Exchange
 from .buyside import BuySide
+from .settlement import AccountError, Settlement
 
 __all__ = ["make_server", "serve"]
 
@@ -102,6 +103,12 @@ class _Handler(BaseHTTPRequestHandler):
             if not self._require_agent():
                 return
             return self._send(200, ux.settlement_record(m.group(1)))
+        if (m := re.fullmatch(r"/uap/v1/accounts/([^/]+)", path)):
+            a = self.settlement.accounts.get(m.group(1))
+            return self._send(200, a) if a else self._fail(404, "UAP_ACCOUNT_UNVERIFIED", "No such account")
+        if (m := re.fullmatch(r"/uap/v1/accounts/([^/]+)/balance", path)):
+            a = self.settlement.accounts.get(m.group(1))
+            return self._send(200, a["balance"]) if a else self._fail(404, "UAP_ACCOUNT_UNVERIFIED", "No such account")
         if (m := re.fullmatch(r"/uap/v1/campaigns/([^/:]+)", path)):
             c = self.buyside.campaigns.get(m.group(1))
             return self._send(200, c) if c else self._fail(404, "UAP_UNSUPPORTED_VERSION", "No such campaign")
@@ -166,6 +173,21 @@ class _Handler(BaseHTTPRequestHandler):
                 cr = bs.submit_creative(m.group(1), body or {})
                 return self._send(202, {"creative_id": cr["creative_id"], **cr["review"],
                                         "content_digest": cr["content_digest"]})
+            if path == "/uap/v1/accounts":
+                acct = self.settlement.create_account(body or {})
+                # A demo exchange has no billing rail, so an enrolled account is
+                # immediately usable. A real one verifies out of band first.
+                self.settlement.verify_account(acct["account_id"], identity="kyb",
+                                               domain_verified=True, tax_form="w9")
+                if acct["kind"] == "advertiser":
+                    self.settlement.fund(acct["account_id"], 10**12)
+                    bs_brand = (body or {}).get("verified_domains") or ["acme.example"]
+                    self.buyside.register_brand(acct["entity_id"], {"verified_domains": bs_brand})
+                return self._send(201, self.settlement.accounts[acct["account_id"]])
+            if (m := re.fullmatch(r"/uap/v1/accounts/([^/]+)/keys", path)):
+                from .crypto import VerifyingKey
+                jwk = self.settlement.enrol_key(m.group(1), VerifyingKey.from_jwk(body or {}))
+                return self._send(201, jwk)
             if path == "/uap/v1/forecast":
                 return self._send(200, bs.forecast(body or {}))
             if path == "/uap/v1/conversions":
@@ -181,6 +203,9 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._send(200, bs.run_report(body or {}))
         except KeyError as exc:
             return self._fail(404, "UAP_UNSUPPORTED_VERSION", "Not found", str(exc))
+        except AccountError as exc:
+            return self._fail(409 if exc.code == "UAP_ACCOUNT_EXISTS" else 400,
+                              exc.code, "Account request rejected", str(exc))
         except ValueError as exc:
             code = str(exc).split(":")[0] if str(exc).startswith("UAP_") else "UAP_SIGNAL_MALFORMED"
             return self._fail(400, code, "Request rejected", str(exc))
@@ -197,9 +222,10 @@ class _Handler(BaseHTTPRequestHandler):
 
 def make_server(exchange: Exchange, host: str = "127.0.0.1", port: int = 8787, verbose: bool = False,
                 buyside: BuySide | None = None):
+    bs = buyside or BuySide(exchange)
     handler = type("_Bound", (_Handler,), {
         "exchange": exchange, "base_url": f"http://{host}:{port}",
-        "buyside": buyside or BuySide(exchange)})
+        "buyside": bs, "settlement": Settlement(exchange)})
     server = ThreadingHTTPServer((host, port), handler)
     server.verbose = verbose
     return server

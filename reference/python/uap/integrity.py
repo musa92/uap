@@ -18,9 +18,16 @@ __all__ = ["compose", "ComposedTurn", "answer_digest", "strip_ad_block",
 
 SEPARATOR = "--- Sponsored ---"
 
-# Markdown control characters. Escaped, never interpreted: creative content is
-# attacker-controlled text arriving over the network.
-_MD_SPECIALS = re.compile(r"([\\`*_{}\[\]()#+\-.!|>~])")
+# Markdown control characters, escaped rather than interpreted: creative text is
+# attacker-controlled input arriving over the network.
+#
+# Escaped everywhere, because these change meaning mid-line.
+_MD_INLINE = re.compile(r"([\\`*_\[\]<>|~])")
+# Escaped only at the start of a line, where they open a block. Escaping "." or
+# "-" everywhere turns "cancel up to 24 hours before arrival." into
+# "arrival\." in the rendered ad, which reads as broken copy to a user. The
+# safety property is unchanged: nothing here is ever interpreted as markup.
+_MD_LEADING = re.compile(r"^(\s*)(?:([#+\-])|(\d+)([.)]))", re.M)
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
@@ -32,7 +39,12 @@ def escape(text: str, renderer: str) -> str:
     """Render creative text as an inert text node for the target renderer."""
     text = _CONTROL.sub("", str(text))
     if renderer == "markdown":
-        return _MD_SPECIALS.sub(r"\\\1", text)
+        text = _MD_INLINE.sub(r"\\\1", text)
+        # For an ordered marker the punctuation is what opens the list, so
+        # "1." becomes "1\." and not "\1." which would leave it a list.
+        return _MD_LEADING.sub(
+            lambda m: m.group(1) + ("\\" + m.group(2) if m.group(2)
+                                    else m.group(3) + "\\" + m.group(4)), text)
     if renderer == "plaintext":
         return text.replace("\r", "")
     if renderer in ("native", "structured", "voice"):
