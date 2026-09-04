@@ -23,6 +23,15 @@ jobs:
         run: make docs-check
       - name: Reference implementation tests
         run: make unit
+      - uses: actions/setup-node@v5
+        with: { node-version: "20" }
+      - name: Interop vectors are current
+        run: |
+          make interop-gen
+          git diff --exit-code conformance/interop/vectors.json \
+            || (echo "interop vectors are stale; run make interop-gen" && exit 1)
+      - name: Cross-implementation conformance
+        run: make interop
       - name: End-to-end demo
         run: make demo
 

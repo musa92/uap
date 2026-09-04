@@ -1,0 +1,12 @@
+{
+  "name": "@uap/protocol",
+  "version": "2026.9.2",
+  "description": "Second reference implementation of the Universal Ads Protocol serve-time core",
+  "license": "Apache-2.0",
+  "repository": { "type": "git", "url": "https://github.com/musa92/uap.git", "directory": "reference/typescript" },
+  "engines": { "node": ">=20" },
+  "main": "src/index.js",
+  "files": ["src"],
+  "scripts": { "test": "node --test test/interop.test.js" },
+  "keywords": ["uap", "advertising", "llm", "protocol"]
+}

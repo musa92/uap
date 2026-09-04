@@ -28,10 +28,14 @@ Every wire object in the protocol, generated from `source/schemas/`. The schemas
 
 ## Settlement
 
+- [**Account**](account.md) — The commercial relationship between a participant and an exchange.
+- [**Invoice**](invoice.md) — What an advertiser owes for a settlement period, itemised, with every adjustment shown.
+- [**Payout**](payout.md) — What a serving node, supply agent or model steward is owed for a period, and the state of its disbursement.
 - [**UAP Payout Handler**](payout_handler.md) — A pluggable mechanism for moving money to a party in a RevenueSplit.
 
 ## Common types
 
+- [**Brand Manifest**](brand.md) — Served at `GET /.well-known/uap-brand` by every advertiser.
 - [**CPM (micros)**](cpm.md) — Price of one thousand impressions, in micros of the stated currency.
 - [**Currency**](currency.md) — ISO 4217 alphabetic currency code.
 - [**Deal**](deal.md) — A pre-negotiated arrangement between a buyer and this supply, identified by `deal_id` and priced outside the open auction.

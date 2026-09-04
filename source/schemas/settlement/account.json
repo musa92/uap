@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/settlement/account.json",
+  "title": "Account",
+  "name": "dev.uap.settlement.account",
+  "version": "2026-09-02",
+  "description": "The commercial relationship between a participant and an exchange. Every party that pays or is paid has one.",
+  "$comment": "Cryptographic identity and commercial identity are separate in UAP. A signing key proves who sent a message; an account determines who gets billed or paid. A valid signature over a key with no account is trust tier 0: it can serve, and it can be paid on CPA, but it cannot sell CPM (SPEC.md §9.3).\n\nOne schema covers both sides because the lifecycle is the same. What differs is direction: an advertiser account accrues a payable, a payee account accrues a receivable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "entity_id", "kind", "status", "currency"],
+  "properties": {
+    "account_id": { "type": "string", "maxLength": 128 },
+    "entity_id": { "type": "string", "maxLength": 256, "description": "The participant this account belongs to." },
+    "kind": {
+      "type": "string",
+      "enum": ["advertiser", "serving_node", "supply_agent", "model_steward", "measurement_agent"],
+      "description": "Which side of the ledger. `advertiser` pays in; the rest are paid out."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending_verification", "active", "suspended", "closed"],
+      "$comment": "  pending_verification  submitted, not yet able to transact\n  active                may serve or spend\n  suspended             existing obligations stand; no new activity\n  closed                settled and finished; an undisbursed balance is still owed"
+    },
+    "currency": { "$ref": "../common/types/currency.json", "description": "Denomination of this account's balance." },
+    "verification": {
+      "type": "object", "additionalProperties": false,
+      "description": "What has been established about this entity, and therefore what it may do.",
+      "properties": {
+        "identity": { "type": "string", "enum": ["none", "email", "domain", "kyc", "kyb"], "default": "none" },
+        "domain_verified": { "type": "boolean", "description": "For advertisers: the brand manifest resolves and its domains check out." },
+        "tax_form": { "type": "string", "enum": ["none", "w9", "w8ben", "w8bene", "eu_vat", "other"], "description": "On file for payees. Required before disbursement in most jurisdictions." },
+        "trust_tier": { "type": "integer", "enum": [0, 1, 2], "description": "The highest tier this entity has substantiated." },
+        "verified_at": { "type": "string", "format": "date-time" }
+      },
+      "$comment": "Tier is a consequence of verification, not a claim. An account with `identity: none` cannot reach tier 1, so it cannot sell CPM, which is the whole reason enrolment is worth doing."
+    },
+    "balance": {
+      "type": "object", "additionalProperties": false,
+      "description": "Running position. Positive means owed to the account holder for a payee, owed by them for an advertiser.",
+      "properties": {
+        "settled_micros": { "$ref": "../common/types/micros.json", "description": "Verified and final." },
+        "pending_micros": { "$ref": "../common/types/micros.json", "description": "Accrued from receipts not yet through the settlement window." },
+        "disbursed_micros": { "$ref": "../common/types/micros.json", "description": "Paid out or collected to date." },
+        "as_of": { "type": "string", "format": "date-time" }
+      }
+    },
+    "credit": {
+      "type": "object", "additionalProperties": false,
+      "description": "Advertiser accounts only.",
+      "properties": {
+        "limit_micros": { "$ref": "../common/types/micros.json" },
+        "terms": { "type": "string", "enum": ["prepay", "net15", "net30", "net60"], "default": "prepay" },
+        "spend_mandate": { "type": "string", "maxLength": 512, "description": "AP2 intent mandate authorising spend against this account." }
+      },
+      "$comment": "A prepay account cannot start a campaign whose budget exceeds its settled balance. Net terms require a credit decision the protocol does not make; it only records the outcome."
+    },
+    "payout": {
+      "type": "object", "additionalProperties": false,
+      "description": "Payee accounts only: where money goes and when.",
+      "properties": {
+        "handler": { "$ref": "../common/types/reverse_domain_name.json", "examples": ["dev.uap.payout.ap2", "com.stripe.connect"] },
+        "handler_account_ref": { "type": "string", "maxLength": 256, "description": "Opaque reference held by the handler. UAP never carries payout credentials." },
+        "minimum_micros": { "$ref": "../common/types/micros.json", "description": "Below this, payout rolls to the next period." },
+        "schedule": { "type": "string", "enum": ["daily", "weekly", "monthly", "net30", "net60"] },
+        "on_hold": { "type": "boolean", "description": "Disbursement paused, usually pending tax documentation or a fraud review. The balance is still owed." }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

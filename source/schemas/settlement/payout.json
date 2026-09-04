@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/settlement/payout.json",
+  "title": "Payout",
+  "name": "dev.uap.settlement.payout",
+  "version": "2026-09-02",
+  "description": "What a serving node, supply agent or model steward is owed for a period, and the state of its disbursement.",
+  "$comment": "The other half of the invoice. Where an invoice collects, a payout disburses, and the two are reconciled against the same verified receipt set: an exchange that bills for an impression it does not pay out on is visibly out of balance.\n\nRejections are itemised for the same reason they are on the invoice. A node told only that its earnings were lower than expected has no way to improve, and no reason to trust the number.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["payout_id", "account_id", "period", "currency", "gross_micros", "net_micros", "status"],
+  "properties": {
+    "payout_id": { "type": "string", "maxLength": 128 },
+    "account_id": { "type": "string", "maxLength": 128 },
+    "entity_id": { "type": "string", "maxLength": 256 },
+    "party": { "type": "string", "enum": ["serving_node", "surface", "supply_agent", "model_steward", "measurement_agent"] },
+    "period": {
+      "type": "object", "additionalProperties": false, "required": ["start", "end"],
+      "properties": { "start": { "type": "string", "format": "date" }, "end": { "type": "string", "format": "date" } }
+    },
+    "currency": { "$ref": "../common/types/currency.json" },
+    "status": {
+      "type": "string",
+      "enum": ["accruing", "pending", "held", "sent", "failed", "rolled_over"],
+      "$comment": "  accruing     period open\n  pending      final, awaiting the payout run\n  held         blocked on tax documentation or a fraud review; still owed\n  sent         handed to the payout handler\n  failed       the handler rejected it; the balance remains owed\n  rolled_over  below the account minimum; carried into the next period"
+    },
+    "receipts": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "verified": { "type": "integer", "minimum": 0 },
+        "rejected": { "type": "integer", "minimum": 0 },
+        "rejection_reasons": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "gross_micros": { "$ref": "../common/types/micros.json", "description": "Before the exchange fee and any other party's share." },
+    "splits": {
+      "type": "array",
+      "description": "How the gross was divided. Basis points sum to 10000.",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["party", "bps", "amount_micros"],
+        "properties": {
+          "party": { "type": "string", "enum": ["serving_node", "surface", "supply_agent", "model_steward", "exchange"] },
+          "entity_id": { "type": "string", "maxLength": 256 },
+          "bps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+          "amount_micros": { "$ref": "../common/types/micros.json" }
+        }
+      }
+    },
+    "withholding": {
+      "type": "object", "additionalProperties": false,
+      "description": "Tax withheld at source, where the payee's jurisdiction requires it.",
+      "properties": {
+        "scheme": { "type": "string", "enum": ["none", "us_backup", "treaty", "local"] },
+        "rate_bps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "amount_micros": { "$ref": "../common/types/micros.json" },
+        "form": { "type": "string", "enum": ["w9", "w8ben", "w8bene", "other"] }
+      },
+      "$comment": "Paying individuals across borders is a reporting obligation, not an optional feature. An exchange operating at scale files 1099 or DAC7 returns, and needs a form on file before it can disburse."
+    },
+    "net_micros": { "$ref": "../common/types/micros.json", "description": "This party's share after splits and withholding. What is actually sent." },
+    "handler": { "$ref": "../common/types/reverse_domain_name.json" },
+    "handler_reference": { "type": "string", "maxLength": 256, "description": "The handler's own transfer id, for tracing a payment that did not arrive." },
+    "mandate": { "type": "string", "maxLength": 512, "description": "AP2 settlement mandate committing to this period's verified receipt set." },
+    "sent_at": { "type": "string", "format": "date-time" },
+    "signature": { "$ref": "../common/types/signature.json" }
+  }
+}

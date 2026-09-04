@@ -1,0 +1,53 @@
+# Three containers, one command:  docker compose up
+#
+#   exchange   the reference exchange, supply and demand APIs
+#   upstream   a stand-in OpenAI-compatible model server, no GPU needed
+#   proxy      monetises upstream; point any OpenAI client at :8800
+#
+# Swap `upstream` for vLLM, SGLang, Ollama or llama.cpp and change nothing else.
+services:
+  exchange:
+    build: { context: ., target: exchange }
+    ports: ["8787:8787"]
+    command:
+      - "--entity=uax.local"
+      - "--seed=${UAP_EXCHANGE_SEED:-1111111111111111111111111111111111111111111111111111111111111111}"
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8787/.well-known/uap',timeout=2)"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  upstream:
+    build: { context: ., target: upstream }
+    ports: ["8000:8000"]
+
+  # Puts one campaign live through the real demand API. Without demand the
+  # exchange can never fill, and the demo looks broken rather than empty.
+  seed:
+    build: { context: ., target: exchange }
+    depends_on:
+      exchange: { condition: service_healthy }
+    entrypoint: ["uap", "seed-demo", "--exchange", "http://exchange:8787"]
+    restart: "no"
+
+  proxy:
+    build: { context: ., target: proxy }
+    depends_on:
+      exchange: { condition: service_healthy }
+      upstream: { condition: service_started }
+      seed: { condition: service_completed_successfully }
+    ports: ["8800:8800"]
+    command:
+      - "--upstream=http://upstream:8000"
+      - "--exchange=http://exchange:8787"
+      - "--entity=node.local"
+      - "--model=stub"
+      - "--ad-every=1"
+      # Creates a payee account and enrols the signing key, without which the
+      # exchange rejects every receipt and the node earns nothing.
+      - "--enrol"
+      # Demo only. The shipped classifier fails closed on purpose; without this
+      # flag nothing is ever served, which is the correct production default.
+      - "--accept-unverified-classifier"

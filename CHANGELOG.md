@@ -9,6 +9,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Second implementation of the serve-time core, in JavaScript, written from the
+  specification: RFC 8785 canonicalization, Ed25519 with domain separation, the
+  Appendix A predicate language, and the integrity boundary. Zero dependencies.
+- `conformance/interop/`: vectors generated from Python and recomputed by
+  JavaScript, asserting byte-identical canonicalization, signatures, escaping,
+  composition and predicate results. Wired into `make test` and CI.
+
 - Buy side: `Campaign`, `LineItem`, `Forecast`, `ConversionEvent` and `Report`
   schemas, a demand-service OpenAPI definition covering campaign and line-item
   management, creative review, forecasting, conversions and aggregate
@@ -27,6 +34,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and a terminology checker for names a spellchecker cannot catch.
 
 ### Fixed
+
+- Proxy receipts were rejected with `signature` because the generated key was
+  never enrolled, so ads rendered but nothing was payable. Added `--enrol` and
+  a regression test; found by running the container stack.
+- Markdown escaping was blanket over every special character, rendering
+  "arrival." as "arrival\\." in live ad copy. Inline markup is still escaped
+  everywhere; block openers only at line start.
+- `pyproject.toml` declared a `uap` console script whose module did not exist.
 
 - Appendix A cited a latency figure the implementation did not meet. The
   implementation now meets it and the appendix cites the measurement.

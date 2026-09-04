@@ -1060,6 +1060,13 @@ mandates, and pacing allocation bound the blast radius.
   documented no rather than a negotiation.
 - Changes proceed by public PR, a 30-day comment window, and two independent
   interoperating implementations before a capability leaves draft.
+- Interoperation is demonstrated, not asserted. The serve-time core has two
+  implementations written from this document, in Python and JavaScript, which
+  are held to producing identical canonical bytes, identical signatures,
+  identical creative escaping, identical composition and identical predicate
+  results by `conformance/interop/`. A single byte of canonicalization
+  disagreement would mean every signature one produces fails on the other, so
+  that vector set is the first thing a third implementation should run.
 
 ---
 

@@ -2,19 +2,20 @@
 
 PY := python3
 
-.PHONY: test schemas unit links terms spelling markdown lint docs docs-check docs-serve demo serve clean help
+.PHONY: test schemas unit interop interop-gen links terms spelling markdown lint docs docs-check docs-serve demo serve clean help
 
 help:
 	@echo "make test      everything CI runs"
 	@echo "make schemas   schemas, refs, invariants, conformance vectors"
 	@echo "make unit      reference implementation tests"
 	@echo "make lint      spelling, terminology, markdown, links"
+	@echo "make interop   cross-implementation conformance, Python against JavaScript"
 	@echo "make docs      regenerate the schema reference from source/schemas"
 	@echo "make docs-serve  run the documentation site locally"
 	@echo "make demo      end-to-end flow, in process then over HTTP"
 	@echo "make serve     reference exchange on localhost:8787"
 
-test: schemas lint docs-check unit
+test: schemas lint docs-check unit interop
 
 schemas:
 	@$(PY) scripts/validate.py
@@ -44,6 +45,14 @@ docs-serve: docs
 
 unit:
 	@cd reference/python && $(PY) -m pytest -q
+
+# Regenerate the vectors the JavaScript implementation is checked against.
+interop-gen:
+	@$(PY) scripts/gen_interop_vectors.py
+
+# Two implementations, written from the specification, must agree byte for byte.
+interop:
+	@cd reference/typescript && node --test test/interop.test.js
 
 demo:
 	@$(PY) reference/python/demo/end_to_end.py

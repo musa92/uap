@@ -154,3 +154,52 @@ def test_unresolvable_hops_are_reported_not_failed():
         {"asi": "other.example", "sid": "x", "hp": 1, "anchor": {"type": "domain"}}]}
     v = verify_chain(chain, {})
     assert v.ok and v.unresolvable == 1
+
+
+# ---------------------------------------------------------------------------
+# Escaping: neutralise markup without mangling ordinary ad copy
+# ---------------------------------------------------------------------------
+
+from uap.integrity import escape   # noqa: E402
+
+
+@pytest.mark.parametrize("text", [
+    "Traditional inns from $180 a night, cancel up to 24 hours before arrival.",
+    "Book now - 50% off this week",
+    "Rates from 25,000 yen. Free cancellation.",
+    "Kyoto, Osaka and Nara: 3 nights",
+])
+def test_ordinary_copy_passes_through_unescaped(text):
+    """Over-escaping is a rendering defect: a user sees 'arrival\\.' and reads
+    it as broken. Blanket-escaping every period did exactly that."""
+    assert escape(text, "markdown") == text
+
+
+@pytest.mark.parametrize("text,must_contain", [
+    ("Try **bold**", "\\*\\*"),
+    ("A [link](http://x)", "\\["),
+    ("<script>alert(1)</script>", "\\<"),
+    ("back`tick`", "\\`"),
+    ("under_score_", "\\_"),
+    ("pipe | table", "\\|"),
+])
+def test_inline_markup_is_neutralised_everywhere(text, must_contain):
+    assert must_contain in escape(text, "markdown")
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("- Free cancellation", "\\- Free cancellation"),
+    ("# Heading", "\\# Heading"),
+    ("+ Item", "\\+ Item"),
+    ("1. Pick a room", "1\\. Pick a room"),
+    ("2) Then book", "2\\) Then book"),
+])
+def test_block_openers_are_escaped_at_line_start(text, expected):
+    """Only at line start, and for an ordered marker it is the punctuation that
+    opens the list, so the escape goes after the digit."""
+    assert escape(text, "markdown") == expected
+
+
+def test_control_characters_are_stripped_in_every_renderer():
+    for renderer in ("markdown", "plaintext", "native"):
+        assert "\x00" not in escape("a\x00b", renderer)
