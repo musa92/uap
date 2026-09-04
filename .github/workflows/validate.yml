@@ -23,7 +23,7 @@ jobs:
         run: make docs-check
       - name: Reference implementation tests
         run: make unit
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: "20" }
       - name: Interop vectors are current
         run: |
