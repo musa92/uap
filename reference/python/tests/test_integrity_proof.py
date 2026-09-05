@@ -7,7 +7,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import pytest
 
 from uap import Exchange, SigningKey
-from uap.integrity import (answer_digest, commit_answer, compose,
+from uap.integrity import (answer_digest, canonical_answer, commit_answer, compose,
+                           is_canonical_answer, IntegrityError,
                            verify_answer_commitment, verify_composition)
 from uap.measurement import assess, meets_mrc
 from uap.supply_chain import verify_chain
@@ -203,3 +204,37 @@ def test_block_openers_are_escaped_at_line_start(text, expected):
 def test_control_characters_are_stripped_in_every_renderer():
     for renderer in ("markdown", "plaintext", "native"):
         assert "\x00" not in escape("a\x00b", renderer)
+
+
+# -- answer encoding ---------------------------------------------------------
+
+def test_nfc_and_nfd_converge_on_one_digest():
+    """Two spellings of one visible string must commit to the same bytes.
+
+    Without this, a surface that normalises on render produces a settlement
+    mismatch indistinguishable from a real integrity breach.
+    """
+    nfc, nfd = "café in Kyoto", "café in Kyoto"
+    assert nfc != nfd
+    assert canonical_answer(nfc) == canonical_answer(nfd)
+    assert answer_digest(canonical_answer(nfc)) == answer_digest(canonical_answer(nfd))
+
+
+def test_line_endings_converge_on_one_digest():
+    forms = ["a\r\nb", "a\rb", "a\nb"]
+    digests = {answer_digest(canonical_answer(f)) for f in forms}
+    assert len(digests) == 1
+
+
+def test_digesting_a_non_canonical_answer_is_refused():
+    with pytest.raises(IntegrityError, match="canonical form"):
+        answer_digest("café")
+    # The escape hatch exists for auditing bytes that were already committed.
+    assert answer_digest("café", strict=False).startswith("sha256:")
+
+
+def test_canonicalising_is_idempotent():
+    for raw in ["café", "a\r\nb", "가", "plain ascii"]:
+        once = canonical_answer(raw)
+        assert canonical_answer(once) == once
+        assert is_canonical_answer(once)

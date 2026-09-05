@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/settlement/dispute.json",
+  "title": "Dispute",
+  "description": "A challenge to billed lines on an invoice, adjudicated by re-verifying the cited receipts rather than by negotiation. Every billable impression under UAP carries a receipt the exchange already verified against what it issued, so a dispute has a determinate answer: either the cited receipts still verify, or they do not. This is the difference from open-web billing disputes, which are settled by whoever has more leverage.\n\nA credit to an advertiser MUST be matched by a clawback from the payees who were paid for the same impressions. An exchange that credits one side without reversing the other is silently absorbing the difference and will not reconcile.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dispute_id", "invoice_id", "account_id", "status", "reason_code", "lines", "opened_at"],
+  "properties": {
+    "dispute_id": { "type": "string", "maxLength": 64 },
+    "invoice_id": { "type": "string", "maxLength": 64 },
+    "account_id": {
+      "type": "string", "maxLength": 64,
+      "description": "The advertiser account challenging the invoice."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "under_review", "upheld", "partially_upheld", "rejected", "withdrawn", "expired"],
+      "$comment": "  open              filed, inside the window, not yet adjudicated\n  under_review      re-verification in progress\n  upheld            every cited receipt failed re-verification\n  partially_upheld  some failed\n  rejected          all cited receipts re-verified; the payable stands\n  withdrawn         the advertiser withdrew it\n  expired           the window closed with no adjudication; per 10.4 this resolves in the advertiser's favour"
+    },
+    "reason_code": {
+      "type": "string",
+      "enum": ["not_delivered", "invalid_traffic", "measurement_discrepancy", "duplicate", "wrong_price", "brand_safety", "integrity_breach"],
+      "$comment": "integrity_breach is UAP-specific: the advertiser asserts the answer was composed after the auction, in violation of 7.1. It is adjudicated against the answer-digest commitment, not the impression count."
+    },
+    "lines": {
+      "type": "array", "minItems": 1, "maxItems": 1000,
+      "description": "The challenged lines. Each MUST cite the receipts it disputes, so adjudication has something to re-verify.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["line_item_id", "receipt_ids", "disputed_micros"],
+        "properties": {
+          "line_item_id": { "type": "string", "maxLength": 64 },
+          "receipt_ids": {
+            "type": "array", "minItems": 1, "maxItems": 10000,
+            "items": { "type": "string", "maxLength": 128 }
+          },
+          "disputed_micros": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Optional supporting material. Adjudication does not depend on it; the receipt set is authoritative.",
+      "additionalProperties": false,
+      "properties": {
+        "note": { "type": "string", "maxLength": 2048 },
+        "measurement_agent": { "type": "string", "maxLength": 256 },
+        "reference_url": { "type": "string", "format": "uri" }
+      }
+    },
+    "adjudication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "upheld_micros", "rejected_micros"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["receipt_reverification", "holdout_comparison", "manual"],
+          "$comment": "manual is permitted but MUST record who decided; it is the path that does not reconcile automatically."
+        },
+        "reverified_at": { "type": "string", "format": "date-time" },
+        "upheld_micros": { "type": "integer", "minimum": 0 },
+        "rejected_micros": { "type": "integer", "minimum": 0 },
+        "decided_by": { "type": "string", "maxLength": 256 },
+        "per_receipt": {
+          "type": "array", "maxItems": 10000,
+          "description": "Per-receipt outcome, itemised for the same reason 10.2 itemises rejections.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["receipt_id", "still_billable", "reason"],
+            "properties": {
+              "receipt_id": { "type": "string", "maxLength": 128 },
+              "still_billable": { "type": "boolean" },
+              "reason": { "type": "string", "maxLength": 256 },
+              "gross_micros": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "remedy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string", "enum": ["credit", "make_good"],
+          "$comment": "credit reduces the invoice and claws back the matching payee shares. make_good leaves the invoice standing and creates an obligation to re-deliver equivalent impressions, so the payee keeps what it earned and earns again on re-delivery."
+        },
+        "credit_micros": { "type": "integer", "minimum": 0 },
+        "clawback": {
+          "type": "array",
+          "description": "The reversal applied to each payee, in the same proportions they were originally paid.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["entity_id", "amount_micros"],
+            "properties": {
+              "entity_id": { "type": "string", "maxLength": 256 },
+              "party": { "type": "string", "maxLength": 32 },
+              "amount_micros": { "type": "integer", "minimum": 0 },
+              "recovered_from": {
+                "type": "string", "enum": ["pending_balance", "carried_forward"],
+                "$comment": "carried_forward means the payout had already been disbursed and the amount is owed against a future period."
+              }
+            }
+          }
+        },
+        "make_good": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["impressions", "expires_at"],
+          "properties": {
+            "impressions": { "type": "integer", "minimum": 1 },
+            "line_item_id": { "type": "string", "maxLength": 64 },
+            "expires_at": { "type": "string", "format": "date-time" },
+            "delivered": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "opened_at": { "type": "string", "format": "date-time" },
+    "deadline_at": {
+      "type": "string", "format": "date-time",
+      "description": "End of the adjudication window. An exchange that lets this pass resolves the dispute in the advertiser's favour; otherwise ignoring a dispute is a winning strategy."
+    },
+    "resolved_at": { "type": "string", "format": "date-time" },
+    "signature": { "$ref": "https://uap.dev/schemas/common/types/signature.json" }
+  }
+}

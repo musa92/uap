@@ -115,7 +115,11 @@ def test_dispute_holds_the_amount_and_marks_the_invoice(st):
         "lines": [{"line_item_id": "li_1", "disputed_micros": 200_000}],
         "reason": "count_mismatch"})
     assert out["status"] == "disputed"
-    assert out["adjustments"][-1]["amount_micros"] == -200_000
+    # Held, not credited. Filing a dispute must not decide it: crediting here
+    # would pre-judge the outcome and leave the payout side unreversed.
+    assert out["held_micros"] == 200_000
+    assert out["collectible_micros"] == out["total_micros"] - 200_000
+    assert not any(a["kind"] == "dispute_credit" for a in out.get("adjustments", []))
 
 
 def test_cannot_dispute_more_than_the_invoice(st):

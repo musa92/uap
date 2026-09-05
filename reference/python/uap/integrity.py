@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from dataclasses import dataclass
 
-__all__ = ["compose", "ComposedTurn", "answer_digest", "strip_ad_block",
+__all__ = ["compose", "ComposedTurn", "answer_digest", "canonical_answer",
+           "is_canonical_answer", "strip_ad_block",
            "assert_creative_absent", "verify_composition", "verify_answer_commitment",
            "AnswerCommitment", "IntegrityError", "SEPARATOR"]
 
@@ -54,8 +56,44 @@ def escape(text: str, renderer: str) -> str:
     raise IntegrityError(f"unknown renderer {renderer!r}; refusing to render")
 
 
-def answer_digest(answer: str) -> str:
-    """SHA-256 over the exact answer bytes, excluding ad block and separator."""
+def canonical_answer(text: str) -> str:
+    """The answer form that is both displayed and digested.
+
+    The digest commits to the bytes the user saw, so it must be taken over the
+    same bytes the surface emits. Two encodings of the same visible string break
+    that without anything dishonest happening:
+
+        "cafe\u0301"  (NFD)  and  "caf\u00e9"  (NFC)   render identically
+        "a\r\nb"      (CRLF) and  "a\nb"       (LF)     render identically
+
+    Either pair digests differently, so a surface that normalises on render, or
+    a client that rewrites line endings, produces a mismatch at settlement that
+    is indistinguishable from a real integrity breach.
+
+    Normalising here rather than inside answer_digest is deliberate: the surface
+    calls this once when the answer is produced and uses the result for both
+    display and commitment. Normalising at digest time would let the digest
+    commit to something other than what was shown, which is the one thing it
+    exists to prevent.
+    """
+    return unicodedata.normalize("NFC", text).replace("\r\n", "\n").replace("\r", "\n")
+
+
+def is_canonical_answer(text: str) -> bool:
+    return text == canonical_answer(text)
+
+
+def answer_digest(answer: str, *, strict: bool = True) -> str:
+    """SHA-256 over the exact answer bytes, excluding ad block and separator.
+
+    Refuses a non-canonical answer by default. Failing here is loud and local;
+    the alternative is a digest that will not reproduce at settlement, surfacing
+    weeks later as an unexplained integrity failure on an honest impression.
+    """
+    if strict and not is_canonical_answer(answer):
+        raise IntegrityError(
+            "answer is not in canonical form (NFC, LF line endings); "
+            "call canonical_answer() when the answer is produced and display that")
     return "sha256:" + hashlib.sha256(answer.encode("utf-8")).hexdigest()
 
 

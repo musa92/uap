@@ -22,7 +22,8 @@ sys.path.insert(0, str(ROOT / "reference" / "python"))
 from uap import predicate                                 # noqa: E402
 from uap.canonical import serialize                       # noqa: E402
 from uap.crypto import SigningKey, sign_object            # noqa: E402
-from uap.integrity import answer_digest, compose, escape   # noqa: E402
+from uap.integrity import (answer_digest, canonical_answer, compose, escape,
+                           is_canonical_answer)   # noqa: E402
 
 OUT = ROOT / "conformance" / "interop"
 
@@ -92,6 +93,16 @@ PREDICATE_SIGNALS = [
     {},
 ]
 
+ENCODING_CASES = [
+    ("nfc precomposed", "caf\u00e9 in Kyoto"),
+    ("nfd decomposed", "cafe\u0301 in Kyoto"),
+    ("crlf line endings", "line one\r\nline two"),
+    ("bare cr", "line one\rline two"),
+    ("lf already canonical", "line one\nline two"),
+    ("nfd hangul", "\u1100\u1161 ryokan"),
+    ("ascii unchanged", "Kyoto ryokan rates peak in November."),
+]
+
 PREDICATE_CASES = [
     {"all": [{"intent_any": ["travel.accommodation.hotel"]}, {"commercial_intent_gte": 0.5}]},
     {"any": [{"locale_any": ["de-DE"]}, {"surface_any": ["chat"]}]},
@@ -124,6 +135,18 @@ def main() -> int:
                    "organic_answer_digest": composed.organic_answer_digest,
                    "answer_digest": answer_digest(COMPOSE_CASE["answer"])}
 
+    # Encoding: two spellings of one visible string must canonicalise to the
+    # same bytes and therefore the same digest. A second implementation that
+    # normalises differently, or not at all, fails here rather than at
+    # settlement on somebody's honest impression.
+    encoding = []
+    for name, raw in ENCODING_CASES:
+        canon = canonical_answer(raw)
+        encoding.append({"name": name, "input": raw,
+                         "was_canonical": is_canonical_answer(raw),
+                         "canonical": canon,
+                         "digest": answer_digest(canon)})
+
     predicates = [{"predicate": p, "signal": s, "expected": predicate.evaluate(p, s)}
                   for p in PREDICATE_CASES for s in PREDICATE_SIGNALS]
 
@@ -138,12 +161,14 @@ def main() -> int:
         "signing": signing,
         "escaping": escapes,
         "composition": composition,
+        "encoding": encoding,
         "predicates": predicates,
     }
     path = OUT / "vectors.json"
     path.write_text(json.dumps(bundle, indent=2, ensure_ascii=False) + "\n")
     print(f"  wrote {path.relative_to(ROOT)}: {len(canonical)} canonical, "
-          f"{len(signing)} signing, {len(escapes)} escaping, {len(predicates)} predicate")
+          f"{len(signing)} signing, {len(escapes)} escaping, {len(encoding)} encoding, "
+          f"{len(predicates)} predicate")
     return 0
 
 
