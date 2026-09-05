@@ -155,3 +155,24 @@ test('duplicate object keys are rejected on parse', () => {
   assert.throws(() => uap.parse('{"a":1,"a":2}'), /duplicate/);
   assert.deepEqual(uap.parse('{"a":1,"b":2}'), { a: 1, b: 2 });
 });
+
+test('answer canonicalisation matches the Python implementation', () => {
+  for (const c of V.encoding) {
+    assert.equal(uap.canonicalAnswer(c.input), c.canonical, c.name);
+    assert.equal(uap.isCanonicalAnswer(c.input), c.was_canonical, c.name);
+    assert.equal(uap.answerDigest(c.canonical), c.digest, c.name);
+  }
+});
+
+test('two spellings of one visible string digest the same once canonical', () => {
+  const nfc = V.encoding.find((c) => c.name === 'nfc precomposed');
+  const nfd = V.encoding.find((c) => c.name === 'nfd decomposed');
+  assert.notEqual(nfc.input, nfd.input);          // different bytes on the wire
+  assert.equal(nfc.digest, nfd.digest);           // same commitment after canonicalising
+});
+
+test('digesting a non-canonical answer is refused', () => {
+  const nfd = V.encoding.find((c) => c.name === 'nfd decomposed');
+  assert.throws(() => uap.answerDigest(nfd.input), /canonical form/);
+  assert.doesNotThrow(() => uap.answerDigest(nfd.input, { strict: false }));
+});

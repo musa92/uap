@@ -35,7 +35,45 @@ function escapeText(text, renderer) {
   throw new IntegrityError(`unknown renderer ${renderer}; refusing to render`);
 }
 
-function answerDigest(answer) {
+/**
+ * The answer form that is both displayed and digested.
+ *
+ * The digest commits to the bytes the user saw, so it has to be taken over the
+ * same bytes the surface emits. Two encodings of one visible string break that
+ * with nobody doing anything dishonest:
+ *
+ *   "cafe\u0301" (NFD) and "caf\u00e9" (NFC) render identically
+ *   "a\r\nb"     (CRLF) and "a\nb"      (LF)  render identically
+ *
+ * Either pair digests differently, so a surface that normalises on render, or a
+ * client that rewrites line endings, produces a settlement mismatch that looks
+ * exactly like a real integrity breach.
+ *
+ * Normalising here and not inside answerDigest is deliberate: the surface calls
+ * this once when the answer is produced and uses the result for both display
+ * and commitment. Normalising at digest time would let the digest commit to
+ * something other than what was shown.
+ */
+function canonicalAnswer(text) {
+  return text.normalize('NFC').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+function isCanonicalAnswer(text) {
+  return text === canonicalAnswer(text);
+}
+
+/**
+ * SHA-256 over the exact answer bytes, excluding ad block and separator.
+ * Refuses a non-canonical answer by default: failing here is loud and local,
+ * whereas the alternative surfaces weeks later as an unexplained integrity
+ * failure on an honest impression.
+ */
+function answerDigest(answer, { strict = true } = {}) {
+  if (strict && !isCanonicalAnswer(answer)) {
+    throw new IntegrityError(
+      'answer is not in canonical form (NFC, LF line endings); '
+      + 'call canonicalAnswer() when the answer is produced and display that');
+  }
   return 'sha256:' + crypto.createHash('sha256').update(answer, 'utf8').digest('hex');
 }
 
@@ -106,6 +144,6 @@ function verifyAnswerCommitment(composedText, committedDigest) {
 }
 
 module.exports = {
-  compose, escapeText, answerDigest, stripAdBlock,
+  compose, escapeText, answerDigest, canonicalAnswer, isCanonicalAnswer, stripAdBlock,
   verifyComposition, verifyAnswerCommitment, IntegrityError, SEPARATOR,
 };

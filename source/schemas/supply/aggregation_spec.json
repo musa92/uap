@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uap.dev/schemas/supply/aggregation_spec.json",
+  "title": "AggregationSpec",
+  "description": "A closed, declarative description of what a node will compute over its own turns and what will leave it. Carried in the CampaignBundle so the node can read it, check it, and refuse before computing anything.\n\nThis is the safety property of Profile `uap.federated`. Federated systems normally ship code from the server to run against user data, which is worse than shipping the data, because at least data is inspectable. Here the node is given a declaration with a fixed vocabulary and a fixed cardinality, evaluable without callbacks, regex or network, in the same way targeting predicates are (Appendix A).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec_version", "dimensions", "metrics", "contribution_bound", "epsilon", "k_floor", "min_participants"],
+  "properties": {
+    "spec_version": { "const": "uap.agg/1.0" },
+    "dimensions": {
+      "type": "array", "minItems": 1, "maxItems": 4,
+      "description": "Fields to bin on. Every dimension MUST fix its cardinality in advance: an open dimension lets one rare value become its own cell, which identifies whoever produced it.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": ["intents", "commercial_intent", "locale", "surface_hint"],
+            "$comment": "A closed set. Raw text, embeddings and any user-derived identifier are absent by construction, not by policy."
+          },
+          "depth": { "type": "integer", "minimum": 1, "maximum": 3,
+                     "description": "Taxonomy depth for `intents`. Deeper is more useful and less anonymous." },
+          "values": {
+            "type": "array", "minItems": 1, "maxItems": 256,
+            "items": { "type": "string", "maxLength": 128 },
+            "description": "Declared vocabulary. A value outside it falls into a single trailing `other` slot and cannot create a new cell."
+          },
+          "buckets": {
+            "type": "array", "minItems": 2, "maxItems": 17,
+            "items": { "type": "number" },
+            "description": "Ascending numeric boundaries for a continuous field."
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": { "type": "string", "enum": ["impressions", "clicks", "conversions", "viewable"] }
+    },
+    "contribution_bound": {
+      "type": "integer", "minimum": 1, "maximum": 16,
+      "description": "Maximum events one user may add. This is the L1 sensitivity, and it is what makes `epsilon` mean anything: without a per-user bound the noise is decoration."
+    },
+    "epsilon": {
+      "type": "number", "exclusiveMinimum": 0, "maximum": 10,
+      "description": "Privacy parameter for the released aggregate. Enforced by the node against its own per-campaign-day budget, because a budget the exchange tracks is not a budget."
+    },
+    "k_floor": {
+      "type": "integer", "minimum": 50,
+      "description": "Cells below this are suppressed at publication. Noise does not hide a cell only one node could have contributed to."
+    },
+    "min_participants": {
+      "type": "integer", "minimum": 2,
+      "description": "Node count the noise is calibrated to. Nodes MUST calibrate to this floor rather than a live count they cannot verify; if fewer nodes report, the sum is under-noised."
+    },
+    "aggregators": {
+      "type": "array", "minItems": 2, "maxItems": 4,
+      "items": { "type": "string", "format": "uri" },
+      "description": "Independent endpoints receiving additive secret shares. No single one can read a node's vector. They MUST NOT be operated by the same party; the guarantee is non-collusion."
+    },
+    "gradient": {
+      "type": "object",
+      "description": "Optional federated ranking update (SPEC.md 6.9). Features are the aggregation cells plus a bias, so an update cannot observe any field the dimensions did not already declare.",
+      "additionalProperties": false,
+      "required": ["model_id", "clip_norm", "epsilon", "delta"],
+      "properties": {
+        "model_id": { "type": "string", "maxLength": 64 },
+        "clip_norm": { "type": "number", "exclusiveMinimum": 0,
+                       "description": "L2 bound on one user's contribution, and therefore the sensitivity." },
+        "epsilon": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 },
+        "delta": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+        "learning_rate": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

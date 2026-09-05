@@ -176,6 +176,51 @@ back later. Nothing about the conversation leaves, including from the exchange's
 point of view. This is the same architecture as Chrome's Protected Audience API,
 applied to a turn instead of a page.
 
+## How privacy is handled
+
+Three separate mechanisms, because "private" on its own means nothing.
+
+**The conversation never reaches the ad system.** In Profile L the targeting
+predicate is shipped to the node and evaluated there, against a signal as rich
+as the operator's classifier produces, embeddings of the full turn included. The
+computation goes to the data instead of the data going to the computation. What
+returns is which line item won, not what the person asked. That is why the
+privacy position does not cost relevance: per §6.3, the *richest* targeting is
+available only in the profile where nothing leaves.
+
+What the buyer gives up is visibility, not matching. They can write a rule that
+fires on somebody planning a trip with a real budget, and it fires. They cannot
+see who that was, build a profile, or find them again on another node. No
+identifier crosses, so there is no retargeting and no lookalike modelling.
+
+**What does leave is bounded before it leaves.** Any transmitted signal must
+describe at least `k` users (RECOMMENDED ≥ 500) or the node degrades it, dropping
+the narrowest intent first, then geo, then falling back to no signal at all.
+
+**Measurement is aggregated on the node, not on the exchange** (Profile
+`uap.federated`, §6.8). The node bins its own turns against a declared spec with
+a fixed vocabulary, bounds each user's contribution, adds its share of the noise,
+and splits the result into additive secret shares across independent
+aggregators. No single aggregator can tell a busy node from an idle one, and the
+un-noised breakdown never exists anywhere. The noise is distributed correctly
+rather than approximately: a discrete Laplace is infinitely divisible, so N nodes
+each adding Pólya(1/N) sum to exactly the target distribution.
+
+The epsilon budget is enforced **by the node**. A budget tracked by the party
+that benefits from exceeding it is not a budget.
+
+The safety property throughout is that these specifications are *closed*.
+Federated systems normally ship code from the server to run against user data,
+which is worse than shipping the data, because at least data is inspectable.
+Here a node reads a declaration of exactly which fields are binned, at what
+granularity, under what bound, and refuses before computing anything. Same
+discipline as the targeting language: no callbacks, no regex, no network.
+
+**What this does not claim.** Clipping and noise bound what a federated gradient
+discloses. They do not eliminate it, and gradient inversion is an open research
+area. The claim is a published epsilon, not anonymity, and the spec forbids
+implementations from describing the profile as anonymising.
+
 ## Status
 
 Draft for public comment. §14 requires two independent interoperating

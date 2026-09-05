@@ -159,6 +159,15 @@ class Settlement:
         return inv
 
     def dispute_invoice(self, invoice_id: str, dispute: dict) -> dict:
+        """Hold a disputed amount. Does not credit it.
+
+        Filing a dispute makes the amount uncollectible until it is resolved; it
+        does not decide the dispute. An earlier version wrote the credit here,
+        the moment the challenge arrived, which both pre-judged the outcome and
+        left the payout side untouched, so every dispute silently moved money
+        onto the exchange's own books. Adjudication and the matching clawback
+        live in `uap.billing.Billing`, which is the only path that credits.
+        """
         inv = self.invoices[invoice_id]
         if inv["status"] not in ("issued", "disputed"):
             raise AccountError("UAP_INVOICE_NOT_DISPUTABLE", inv["status"])
@@ -166,10 +175,8 @@ class Settlement:
         if disputed > inv["total_micros"]:
             raise AccountError("UAP_INVOICE_NOT_DISPUTABLE", "disputed amount exceeds invoice total")
         inv["status"] = "disputed"
-        inv.setdefault("adjustments", []).append({
-            "kind": "dispute_credit", "amount_micros": -disputed,
-            "reason": dispute["reason"],
-            "reference": "dsp_" + secrets.token_hex(4)})
+        inv["held_micros"] = inv.get("held_micros", 0) + disputed
+        inv["collectible_micros"] = max(0, inv["total_micros"] - inv["held_micros"])
         return inv
 
     def issue_payout(self, account_id: str, period: dict, *, gross_micros: int,

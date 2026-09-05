@@ -558,6 +558,60 @@ implementations MUST fail closed on categories they cannot classify.
 
 ---
 
+### 6.8 Aggregate reporting is computed on the node (Profile `uap.federated`)
+
+§6.6 requires reports to be aggregate, k-thresholded and noised. That is a
+promise about output: the exchange still computes the aggregate from
+per-impression receipts it holds, so the un-noised breakdown exists on its disk.
+This profile removes it.
+
+A node given an `AggregationSpec` in its bundle:
+
+1. Bins its own turns against the **declared** dimensions. The binnable set is
+   closed (`intents`, `commercial_intent`, `locale`, `surface_hint`) and every
+   dimension MUST fix its cardinality in advance. An open dimension lets one rare
+   value become its own cell, which identifies whoever produced it.
+2. Enforces `contribution_bound` per user, using a handle that never leaves the
+   machine. This is the L1 sensitivity. Without it the epsilon is decoration.
+3. Adds **its share** of the noise. A discrete Laplace is infinitely divisible,
+   so N nodes each adding Pólya(1/N) − Pólya(1/N) sum to exactly the target
+   distribution. Each node adding the full scale would be N times noisier than
+   necessary; each adding 1/N of the scale would not be private at all. Nodes
+   MUST calibrate to `min_participants`, not to a live count they cannot verify.
+4. Splits the vector into additive secret shares across the declared
+   `aggregators`. Any single share is uniform over the ring, so no one
+   aggregator can distinguish a busy node from an idle one. The aggregators MUST
+   be independently operated; the guarantee is non-collusion, and a spec listing
+   two endpoints run by the same party provides nothing.
+
+Cells below `k_floor` are suppressed at publication, because noise does not hide
+a cell only one node could have contributed to. The epsilon budget is enforced
+**by the node** against its own per-campaign-day allowance: a budget tracked by
+the party that benefits from exceeding it is not a budget.
+
+### 6.9 Federated ranking updates (Profile `uap.federated`)
+
+Without a learning loop, a buyer writes predicates blind and relevance is capped
+at whatever they guessed on day one. So the model goes to the data instead.
+
+A scorer ships in the bundle. Each node computes a gradient over its own turns,
+clips **each user's** contribution to `clip_norm`, adds N(0, σ²/N) noise, and
+submits secret shares. The Gaussian is stable under addition, so the cohort's
+noise sums to exactly N(0, σ²). The exchange averages and ships an improved
+scorer in the next bundle: bundle down, update up, better bundle down.
+
+Features are the aggregation cells plus a bias, so an update cannot observe any
+field the dimensions did not already declare.
+
+An exchange MUST refuse an aggregate assembled from fewer than
+`min_participants` reporters, because that sum is under-noised relative to what
+was declared.
+
+**What this does not claim.** Clipping and noise bound what a gradient
+discloses; they do not eliminate it, and gradient inversion is an open research
+area. The honest statement is a published epsilon, not "private". Implementations
+MUST NOT describe this profile as anonymising.
+
 ## 7. Answer Integrity (Invariant I2)
 
 This section is the reason to prefer UAP over ad-hoc monetisation. It is also
@@ -596,6 +650,22 @@ Normatively:
 3. `organic_answer_digest` = SHA-256 of the exact bytes shown to the user as the
    answer, excluding the ad block and separator. The surface commits to it in the
    receipt. A settlement-time audit MAY re-request the digest.
+4. The answer MUST be in **canonical form** before it is displayed or digested:
+   Unicode NFC, with `\r\n` and bare `\r` folded to `\n`. The surface MUST
+   canonicalise once, when the answer is produced, and use that same string for
+   both display and commitment.
+
+   This is not pedantry. `caf\u00e9` (NFC) and `cafe\u0301` (NFD) render
+   identically and digest differently, as do `a\r\nb` and `a\nb`. A surface that
+   normalises on render, or a client that rewrites line endings in transit,
+   produces a digest mismatch on a completely honest impression that is
+   indistinguishable from a real breach of this section. Implementations SHOULD
+   refuse to digest a non-canonical answer rather than silently produce a
+   commitment that will not reproduce; the reference implementations raise.
+
+   Canonicalising at digest time instead would let the digest commit to
+   something other than what was shown, which is the one thing it exists to
+   prevent.
 
 ### 7.2 Ads are data, not instructions
 
@@ -926,6 +996,46 @@ provable rather than ledger-internal:
 verified/rejected receipt counts, and the rejection reasons — itemised, because
 "we rejected 40% of your traffic" without reasons is how the web ad ecosystem
 lost publisher trust.
+
+### 10.4 Disputes, credits and make-goods
+
+Billing disputes on the open web are settled by leverage, because neither side
+can prove delivery to the other's satisfaction. UAP does not have that problem:
+every billable impression carries a receipt the exchange verified against what it
+issued, so a dispute has a determinate answer.
+
+`POST {base_url}/invoices/{invoice_id}/disputes` opens one. A dispute MUST cite
+the receipts it challenges; an amount alone is not disputable, because there is
+nothing to re-verify.
+
+1. **Filing holds, it does not credit.** The disputed amount moves to the
+   invoice's `held_micros` and out of `collectible_micros`. It MUST NOT be
+   credited at this point. Crediting on filing pre-judges the outcome, and if the
+   payout side is not reversed at the same moment the exchange has silently
+   absorbed the difference.
+2. **Adjudication is re-verification.** The exchange re-runs receipt
+   verification over the cited receipts and records the outcome per receipt, with
+   reasons, for the same reason §10.2 itemises rejections. A receipt the exchange
+   can no longer produce is upheld for the advertiser: it billed for something it
+   cannot show.
+3. **The window is bounded.** An exchange that does not adjudicate within
+   `deadline_at` resolves the dispute in the advertiser's favour. Without this,
+   ignoring disputes is the winning strategy.
+4. **A credit MUST be matched by a clawback.** When an upheld amount is
+   credited, each party paid on those impressions is reversed at the basis points
+   it was originally paid. Where a payout has already been disbursed, the amount
+   is carried against that party's next period; it is not written off. An
+   exchange whose credits and clawbacks diverge is out of balance, and the
+   reference implementation reports the running difference as
+   `Billing.imbalance()`.
+5. **A make-good is the alternative to a credit.** The invoice stands and the
+   advertiser is owed re-delivery of equivalent impressions instead. There is
+   nothing to claw back, because the node keeps what it earned and earns again on
+   re-delivery.
+
+Disputes filed more than 60 days after issue are out of time. The same amount
+MUST NOT be credited twice: a dispute is refused if it exceeds the invoice's
+outstanding total net of credits already applied.
 
 ### 10.3 Funding open models
 

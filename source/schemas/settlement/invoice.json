@@ -8,38 +8,109 @@
   "$comment": "Buyers reconcile against their own logs and dispute the difference. An invoice that states only a total is a dispute waiting to happen, so line items carry the counts the exchange billed on and adjustments name their cause.\n\nInvalid traffic is credited here rather than silently netted, so a buyer can see what was filtered and challenge it.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["invoice_id", "account_id", "period", "currency", "lines", "total_micros", "status"],
+  "required": [
+    "invoice_id",
+    "account_id",
+    "period",
+    "currency",
+    "lines",
+    "total_micros",
+    "status"
+  ],
   "properties": {
-    "invoice_id": { "type": "string", "maxLength": 128 },
-    "account_id": { "type": "string", "maxLength": 128 },
-    "period": {
-      "type": "object", "additionalProperties": false, "required": ["start", "end"],
-      "properties": { "start": { "type": "string", "format": "date" }, "end": { "type": "string", "format": "date" } }
+    "invoice_id": {
+      "type": "string",
+      "maxLength": 128
     },
-    "currency": { "$ref": "../common/types/currency.json" },
+    "account_id": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "currency": {
+      "$ref": "../common/types/currency.json"
+    },
     "status": {
       "type": "string",
-      "enum": ["draft", "issued", "disputed", "paid", "void"],
+      "enum": [
+        "draft",
+        "issued",
+        "disputed",
+        "paid",
+        "void"
+      ],
       "$comment": "  draft     period still open\n  issued    final; payment due per the account's terms\n  disputed  a line is challenged; the disputed amount is not collectible until resolved\n  paid      settled in full\n  void      withdrawn and replaced"
     },
     "lines": {
-      "type": "array", "minItems": 1,
+      "type": "array",
+      "minItems": 1,
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["campaign_id", "billable_events", "amount_micros"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "campaign_id",
+          "billable_events",
+          "amount_micros"
+        ],
         "properties": {
-          "campaign_id": { "type": "string", "maxLength": 128 },
-          "line_item_id": { "type": "string", "maxLength": 128 },
-          "pricing_model": { "type": "string", "enum": ["cpm", "cpc", "cpa"] },
-          "billable_events": { "type": "integer", "minimum": 0, "description": "Impressions, clicks or conversions, per the pricing model." },
-          "rejected_events": { "type": "integer", "minimum": 0, "description": "Reported but not billed. See `rejection_reasons`." },
+          "campaign_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "line_item_id": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "pricing_model": {
+            "type": "string",
+            "enum": [
+              "cpm",
+              "cpc",
+              "cpa"
+            ]
+          },
+          "billable_events": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Impressions, clicks or conversions, per the pricing model."
+          },
+          "rejected_events": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Reported but not billed. See `rejection_reasons`."
+          },
           "rejection_reasons": {
-            "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 },
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            },
             "description": "Counts by reason.",
             "$comment": "Itemised because 'we rejected 40% of your traffic' without reasons is how the open web lost buyer trust in the first place."
           },
-          "unit_price_micros": { "$ref": "../common/types/micros.json" },
-          "amount_micros": { "$ref": "../common/types/micros.json" }
+          "unit_price_micros": {
+            "$ref": "../common/types/micros.json"
+          },
+          "amount_micros": {
+            "$ref": "../common/types/micros.json"
+          }
         }
       }
     },
@@ -47,31 +118,105 @@
       "type": "array",
       "description": "Credits and debits applied after the lines, each naming its cause.",
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["kind", "amount_micros", "reason"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "amount_micros",
+          "reason"
+        ],
         "properties": {
-          "kind": { "type": "string", "enum": ["ivt_credit", "make_good", "dispute_credit", "discount", "late_fee", "tax"] },
-          "amount_micros": { "type": "integer", "description": "Signed: negative reduces the total." },
-          "reason": { "type": "string", "maxLength": 512 },
-          "reference": { "type": "string", "maxLength": 128, "description": "Dispute or make-good id." }
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ivt_credit",
+              "make_good",
+              "dispute_credit",
+              "discount",
+              "late_fee",
+              "tax"
+            ]
+          },
+          "amount_micros": {
+            "type": "integer",
+            "description": "Signed: negative reduces the total."
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Dispute or make-good id."
+          }
         }
       }
     },
-    "subtotal_micros": { "$ref": "../common/types/micros.json" },
+    "subtotal_micros": {
+      "$ref": "../common/types/micros.json"
+    },
     "tax": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "jurisdiction": { "type": "string", "maxLength": 16 },
-        "scheme": { "type": "string", "enum": ["vat", "gst", "sales_tax", "reverse_charge", "none"] },
-        "rate_bps": { "type": "integer", "minimum": 0, "maximum": 10000 },
-        "amount_micros": { "$ref": "../common/types/micros.json" },
-        "registration": { "type": "string", "maxLength": 64, "description": "The buyer's VAT or GST number, where reverse charge applies." }
+        "jurisdiction": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "scheme": {
+          "type": "string",
+          "enum": [
+            "vat",
+            "gst",
+            "sales_tax",
+            "reverse_charge",
+            "none"
+          ]
+        },
+        "rate_bps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "amount_micros": {
+          "$ref": "../common/types/micros.json"
+        },
+        "registration": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "The buyer's VAT or GST number, where reverse charge applies."
+        }
       }
     },
-    "total_micros": { "$ref": "../common/types/micros.json" },
-    "due_at": { "type": "string", "format": "date-time" },
-    "issued_at": { "type": "string", "format": "date-time" },
-    "mandate": { "type": "string", "maxLength": 512, "description": "AP2 payment mandate derived for this invoice." },
-    "signature": { "$ref": "../common/types/signature.json" }
+    "total_micros": {
+      "$ref": "../common/types/micros.json"
+    },
+    "held_micros": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Amount under open dispute. Held, not credited: filing a dispute makes an amount uncollectible until it resolves, it does not decide it. Crediting on filing both pre-judges the outcome and leaves the payout side unreversed."
+    },
+    "collectible_micros": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "total_micros less held_micros. What the advertiser owes right now."
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mandate": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "AP2 payment mandate derived for this invoice."
+    },
+    "signature": {
+      "$ref": "../common/types/signature.json"
+    }
   }
 }

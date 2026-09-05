@@ -19,7 +19,8 @@ same expression.
 from .version import UAP_VERSION, __version__
 from .canonical import canonicalize, serialize
 from .crypto import SigningKey, VerifyingKey, KeyRing, sign_object, verify_object
-from .integrity import (compose, answer_digest, strip_ad_block, commit_answer,
+from .integrity import (compose, answer_digest, canonical_answer,
+                        is_canonical_answer, strip_ad_block, commit_answer,
                         verify_composition, verify_answer_commitment, IntegrityError)
 from .measurement import assess, meets_mrc
 from .supply_chain import verify_chain
@@ -27,6 +28,11 @@ from .node import Node, Surface, ContextClassifier, KeywordClassifier
 from .exchange import Exchange
 from .demand_client import DemandClient, DemandError
 from .middleware import UAPMiddleware, ExchangeClient
+from .settlement import Settlement, AccountError
+from .billing import Billing, DisputeError
+from .aggregate import (AggregationSpec, LocalAggregator, PrivacyBudget,
+                        AggregationError, secret_share, reconstruct, release)
+from .federated import FederatedTrainer, GradientSpec, LinearScorer
 from . import auction, predicate
 
 __all__ = [
@@ -35,8 +41,13 @@ __all__ = [
     "DemandClient", "DemandError", "UAPMiddleware", "ExchangeClient",
     "SigningKey", "VerifyingKey", "KeyRing", "sign_object", "verify_object",
     "canonicalize", "serialize",
-    "compose", "answer_digest", "strip_ad_block", "commit_answer",
+    "compose", "answer_digest", "canonical_answer", "is_canonical_answer",
+    "strip_ad_block", "commit_answer",
     "verify_composition", "verify_answer_commitment", "IntegrityError",
     "assess", "meets_mrc", "verify_chain",
+    "Settlement", "AccountError", "Billing", "DisputeError",
+    "AggregationSpec", "LocalAggregator", "PrivacyBudget", "AggregationError",
+    "secret_share", "reconstruct", "release",
+    "FederatedTrainer", "GradientSpec", "LinearScorer",
     "auction", "predicate",
 ]

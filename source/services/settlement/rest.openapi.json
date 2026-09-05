@@ -5,134 +5,656 @@
     "version": "2026-09-02",
     "summary": "Accounts, invoices and payouts. How participants enrol and how money moves.",
     "description": "Both sides of the ledger. An advertiser account accrues a payable and receives invoices; a serving node, supply agent or model steward account accrues a receivable and receives payouts. The lifecycle is the same, so the account object is the same.\n\nUAP never carries payout credentials or card details. An account references an opaque handler account; the handler holds the instrument. Consent to spend is an AP2 mandate, not a stored card.",
-    "license": { "name": "Apache-2.0", "identifier": "Apache-2.0" }
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    }
   },
-  "servers": [{ "url": "https://uax.example.com" }],
+  "servers": [
+    {
+      "url": "https://uax.example.com"
+    }
+  ],
   "tags": [
-    { "name": "accounts", "description": "Enrolment and standing." },
-    { "name": "billing", "description": "What an advertiser owes." },
-    { "name": "payouts", "description": "What a payee is owed." }
+    {
+      "name": "accounts",
+      "description": "Enrolment and standing."
+    },
+    {
+      "name": "billing",
+      "description": "What an advertiser owes."
+    },
+    {
+      "name": "payouts",
+      "description": "What a payee is owed."
+    }
   ],
   "paths": {
     "/uap/v1/accounts": {
       "post": {
-        "tags": ["accounts"], "operationId": "createAccount",
+        "tags": [
+          "accounts"
+        ],
+        "operationId": "createAccount",
         "summary": "Enrol a participant",
         "description": "Creates an account in `pending_verification`. What the account may then do depends on what is verified. An advertiser needs a resolvable brand manifest before its creatives can be approved; a payee needs a payout handler and, in most jurisdictions, a tax form before anything can be disbursed. A signing key with no account is trust tier 0: it may serve and be paid on CPA, but it may not sell CPM.",
-        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/account.json" } } } },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/settlement/account.json"
+              }
+            }
+          }
+        },
         "responses": {
-          "201": { "description": "Created.", "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/account.json" } } } },
-          "409": { "$ref": "#/components/responses/Problem" }
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/account.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
         }
       }
     },
     "/uap/v1/accounts/{account_id}": {
       "get": {
-        "tags": ["accounts"], "operationId": "getAccount",
-        "parameters": [{ "$ref": "#/components/parameters/AccountId" }],
+        "tags": [
+          "accounts"
+        ],
+        "operationId": "getAccount",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountId"
+          }
+        ],
         "responses": {
-          "200": { "description": "Account with current balance and verification state.", "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/account.json" } } } },
-          "404": { "$ref": "#/components/responses/Problem" }
+          "200": {
+            "description": "Account with current balance and verification state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/account.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
         }
       },
       "patch": {
-        "tags": ["accounts"], "operationId": "updateAccount",
+        "tags": [
+          "accounts"
+        ],
+        "operationId": "updateAccount",
         "description": "Update the payout handler, schedule, minimum or tax form. Verification state and balance are set by the exchange and are read-only here.",
-        "parameters": [{ "$ref": "#/components/parameters/AccountId" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
-        "requestBody": { "required": true, "content": { "application/merge-patch+json": { "schema": { "type": "object" } } } },
-        "responses": { "200": { "description": "Updated.", "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/account.json" } } } } }
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/account.json"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/uap/v1/accounts/{account_id}/keys": {
       "post": {
-        "tags": ["accounts"], "operationId": "enrolKey",
+        "tags": [
+          "accounts"
+        ],
+        "operationId": "enrolKey",
         "summary": "Enrol a signing key against this account",
         "description": "Binds a public key to the commercial account, which is what moves supply from trust tier 0 to tier 1. Rotation adds a key; verifiers accept any key present in the JWKS at the signature's `created` time.",
-        "parameters": [{ "$ref": "#/components/parameters/AccountId" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Jwk" } } } },
-        "responses": { "201": { "description": "Enrolled.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Jwk" } } } } }
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Jwk"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Enrolled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Jwk"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/uap/v1/accounts/{account_id}/balance": {
       "get": {
-        "tags": ["accounts"], "operationId": "getBalance",
+        "tags": [
+          "accounts"
+        ],
+        "operationId": "getBalance",
         "description": "Settled, pending and disbursed to date. `pending` is accrued from receipts that have not cleared the settlement window and is not yet collectible or payable.",
-        "parameters": [{ "$ref": "#/components/parameters/AccountId" }],
-        "responses": { "200": { "description": "Balance.", "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/account.json#/properties/balance" } } } } }
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/account.json#/properties/balance"
+                }
+              }
+            }
+          }
+        }
       }
     },
-
     "/uap/v1/accounts/{account_id}/invoices": {
       "get": {
-        "tags": ["billing"], "operationId": "listInvoices",
-        "parameters": [{ "$ref": "#/components/parameters/AccountId" }, { "$ref": "#/components/parameters/Cursor" }],
-        "responses": { "200": { "description": "Invoices, newest first.", "content": { "application/json": { "schema": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "https://uap.dev/schemas/settlement/invoice.json" } }, "next_cursor": { "type": "string" } } } } } } }
+        "tags": [
+          "billing"
+        ],
+        "operationId": "listInvoices",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoices, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "https://uap.dev/schemas/settlement/invoice.json"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/uap/v1/invoices/{invoice_id}": {
       "get": {
-        "tags": ["billing"], "operationId": "getInvoice",
+        "tags": [
+          "billing"
+        ],
+        "operationId": "getInvoice",
         "description": "Itemised by line item, with rejection counts by reason and every adjustment named. A buyer reconciles against its own logs using these counts.",
-        "parameters": [{ "$ref": "#/components/parameters/InvoiceId" }],
-        "responses": { "200": { "description": "Invoice.", "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/invoice.json" } } } } }
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/InvoiceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/invoice.json"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/uap/v1/invoices/{invoice_id}:dispute": {
       "post": {
-        "tags": ["billing"], "operationId": "disputeInvoice",
-        "description": "Challenge one or more lines. The disputed amount is not collectible until resolved. Resolution appears as an adjustment on this invoice or a credit on the next.",
-        "parameters": [{ "$ref": "#/components/parameters/InvoiceId" }, { "$ref": "#/components/parameters/IdempotencyKey" }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Dispute" } } } },
+        "tags": [
+          "billing"
+        ],
+        "operationId": "disputeInvoice",
+        "description": "Challenge one or more lines. The disputed amount moves to the invoice's held_micros and out of collectible_micros; it is NOT credited here. Filing does not decide the dispute. Each line MUST cite the receipts it challenges, because adjudication is re-verification of those receipts (SPEC 10.4).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/InvoiceId"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "https://uap.dev/schemas/settlement/dispute.json"
+              }
+            }
+          }
+        },
         "responses": {
-          "202": { "description": "Dispute opened.", "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/invoice.json" } } } },
-          "409": { "$ref": "#/components/responses/Problem" }
+          "202": {
+            "description": "Dispute opened; the amount is held.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/dispute.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
         }
       }
     },
-
     "/uap/v1/accounts/{account_id}/payouts": {
       "get": {
-        "tags": ["payouts"], "operationId": "listPayouts",
-        "parameters": [{ "$ref": "#/components/parameters/AccountId" }, { "$ref": "#/components/parameters/Cursor" }],
-        "responses": { "200": { "description": "Payouts, newest first.", "content": { "application/json": { "schema": { "type": "object", "properties": { "items": { "type": "array", "items": { "$ref": "https://uap.dev/schemas/settlement/payout.json" } }, "next_cursor": { "type": "string" } } } } } } }
+        "tags": [
+          "payouts"
+        ],
+        "operationId": "listPayouts",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountId"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payouts, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "https://uap.dev/schemas/settlement/payout.json"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/uap/v1/payouts/{payout_id}": {
       "get": {
-        "tags": ["payouts"], "operationId": "getPayout",
+        "tags": [
+          "payouts"
+        ],
+        "operationId": "getPayout",
         "description": "Gross, the split table, withholding, and the net actually sent, with verified and rejected receipt counts and the reasons behind the rejections.",
-        "parameters": [{ "$ref": "#/components/parameters/PayoutId" }],
-        "responses": { "200": { "description": "Payout.", "content": { "application/json": { "schema": { "$ref": "https://uap.dev/schemas/settlement/payout.json" } } } } }
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PayoutId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payout.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/payout.json"
+                }
+              }
+            }
+          }
+        }
       }
-    }
-  },
-
-  "components": {
-    "securitySchemes": {
-      "oauth2": { "type": "oauth2", "flows": { "clientCredentials": { "tokenUrl": "https://uax.example.com/oauth/token", "scopes": { "uap.account": "Manage accounts and keys", "uap.billing": "Read invoices and open disputes", "uap.payout": "Read payouts" } } } }
     },
-    "parameters": {
-      "AccountId": { "name": "account_id", "in": "path", "required": true, "schema": { "type": "string" } },
-      "InvoiceId": { "name": "invoice_id", "in": "path", "required": true, "schema": { "type": "string" } },
-      "PayoutId": { "name": "payout_id", "in": "path", "required": true, "schema": { "type": "string" } },
-      "Cursor": { "name": "cursor", "in": "query", "schema": { "type": "string" } },
-      "IdempotencyKey": { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string" } }
+    "/uap/v1/disputes/{dispute_id}": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "getDispute",
+        "description": "Current state, including the per-receipt adjudication once it has run.",
+        "parameters": [
+          {
+            "name": "dispute_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The dispute.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/dispute.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     },
-    "responses": {
-      "Problem": { "description": "RFC 9457 problem document.", "content": { "application/problem+json": { "schema": { "type": "object", "required": ["type", "title", "status", "code"], "properties": { "type": { "type": "string" }, "title": { "type": "string" }, "status": { "type": "integer" }, "code": { "type": "string", "enum": ["UAP_ACCOUNT_EXISTS", "UAP_ACCOUNT_UNVERIFIED", "UAP_CREDIT_EXCEEDED", "UAP_INVOICE_NOT_DISPUTABLE", "UAP_ROLE_FORBIDDEN"] }, "detail": { "type": "string" } } } } } }
+    "/uap/v1/disputes/{dispute_id}:adjudicate": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "adjudicateDispute",
+        "description": "Re-verify every cited receipt and record the outcome per receipt with reasons. A receipt the exchange can no longer produce is upheld for the advertiser: it billed for something it cannot show. An exchange that lets deadline_at pass resolves the dispute in the advertiser's favour.",
+        "parameters": [
+          {
+            "name": "dispute_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Adjudicated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/dispute.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     },
-    "schemas": {
-      "Jwk": { "type": "object", "required": ["kty", "crv", "kid", "x"], "properties": { "kty": { "const": "OKP" }, "crv": { "const": "Ed25519" }, "kid": { "type": "string" }, "x": { "type": "string" }, "alg": { "const": "EdDSA" }, "use": { "const": "sig" } } },
-      "Dispute": {
-        "type": "object", "required": ["lines", "reason"],
-        "properties": {
-          "lines": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["line_item_id", "disputed_micros"], "properties": { "line_item_id": { "type": "string" }, "disputed_micros": { "$ref": "https://uap.dev/schemas/common/types/micros.json" }, "note": { "type": "string", "maxLength": 512 } } } },
-          "reason": { "type": "string", "enum": ["count_mismatch", "invalid_traffic", "brand_unsuitable", "creative_not_served", "duplicate_billing", "other"] },
-          "evidence_url": { "type": "string", "format": "uri" }
+    "/uap/v1/disputes/{dispute_id}:resolve": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "operationId": "resolveDispute",
+        "description": "Apply the remedy. A credit reduces the invoice AND claws back each payee's share at the basis points it was paid; where a payout is already disbursed the amount is carried against that party's next period. A make_good leaves the invoice standing and owes re-delivery instead, so there is nothing to claw back.",
+        "parameters": [
+          {
+            "name": "dispute_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "remedy"
+                ],
+                "properties": {
+                  "remedy": {
+                    "type": "string",
+                    "enum": [
+                      "credit",
+                      "make_good"
+                    ]
+                  },
+                  "line_item_id": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "cpm_micros": {
+                    "$ref": "https://uap.dev/schemas/common/types/micros.json",
+                    "description": "Required for make_good: sizes the re-delivery."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "https://uap.dev/schemas/settlement/dispute.json"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
         }
       }
     }
   },
-  "security": [{ "oauth2": [] }]
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://uax.example.com/oauth/token",
+            "scopes": {
+              "uap.account": "Manage accounts and keys",
+              "uap.billing": "Read invoices and open disputes",
+              "uap.payout": "Read payouts"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "AccountId": {
+        "name": "account_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "InvoiceId": {
+        "name": "invoice_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "PayoutId": {
+        "name": "payout_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "RFC 9457 problem document.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "type",
+                "title",
+                "status",
+                "code"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "integer"
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UAP_ACCOUNT_EXISTS",
+                    "UAP_ACCOUNT_UNVERIFIED",
+                    "UAP_CREDIT_EXCEEDED",
+                    "UAP_INVOICE_NOT_DISPUTABLE",
+                    "UAP_ROLE_FORBIDDEN"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Jwk": {
+        "type": "object",
+        "required": [
+          "kty",
+          "crv",
+          "kid",
+          "x"
+        ],
+        "properties": {
+          "kty": {
+            "const": "OKP"
+          },
+          "crv": {
+            "const": "Ed25519"
+          },
+          "kid": {
+            "type": "string"
+          },
+          "x": {
+            "type": "string"
+          },
+          "alg": {
+            "const": "EdDSA"
+          },
+          "use": {
+            "const": "sig"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2": []
+    }
+  ]
 }
