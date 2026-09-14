@@ -3,6 +3,7 @@
 # whitelisted here becomes permanent and nobody will catch it again.
 
 Aghayev
+Pólya
 Kimi
 Moonshot
 Omnicom

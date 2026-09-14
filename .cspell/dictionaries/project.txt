@@ -1,9 +1,10 @@
-
-# Adjectives coined in the specification for protocol properties.
-# and coined terms. Anything here should be greppable in the source tree.
 # Identifiers that exist only in this repository: code symbols, example values
+# and coined terms. Anything here should be greppable in the source tree.
+# Adjectives coined in the specification for protocol properties.
+
 accrue
 accruing
+binnable
 buyside
 canonicalize
 canonicalizer
@@ -12,13 +13,16 @@ chatcmpl
 chokepoint
 conds
 crawlable
+dequantise
 domainless
 ecmascript
 enrol
 enrolment
 globex
+gspec
 healthcheck
 hotelio
+inspectable
 interop
 interp
 JavaScript
@@ -29,6 +33,8 @@ kyb
 metaschema
 overclaimed
 parseable
+polya
+precomposed
 preds
 pymdownx
 pyo
@@ -43,7 +49,9 @@ subschema
 superfences
 supplychain
 testpaths
+thresholded
 unbillable
+uncollectible
 undisbursed
 unevidenced
 unrepresentable

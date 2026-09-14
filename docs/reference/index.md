@@ -11,6 +11,7 @@ Every wire object in the protocol, generated from `source/schemas/`. The schemas
 ## Supply side
 
 - [**AdRequest**](ad_request.md) — The request body a serving node sends to an exchange to fill one or more placements on a generated turn.
+- [**AggregationSpec**](aggregation_spec.md) — A closed, declarative description of what a node will compute over its own turns and what will leave it.
 - [**ContextSignal**](context_signal.md) — The only conversation-derived data permitted to leave a serving node.
 - [**ImpressionReceipt**](impression_receipt.md) — The billable artefact, emitted and signed by the surface.
 - [**Placement**](placement.md) — An advertising slot on a generated turn, described by the surface rather than by pixels.
@@ -29,6 +30,7 @@ Every wire object in the protocol, generated from `source/schemas/`. The schemas
 ## Settlement
 
 - [**Account**](account.md) — The commercial relationship between a participant and an exchange.
+- [**Dispute**](dispute.md) — A challenge to billed lines on an invoice, adjudicated by re-verifying the cited receipts rather than by negotiation.
 - [**Invoice**](invoice.md) — What an advertiser owes for a settlement period, itemised, with every adjustment shown.
 - [**Payout**](payout.md) — What a serving node, supply agent or model steward is owed for a period, and the state of its disbursement.
 - [**UAP Payout Handler**](payout_handler.md) — A pluggable mechanism for moving money to a party in a RevenueSplit.

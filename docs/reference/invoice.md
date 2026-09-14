@@ -22,6 +22,8 @@ What an advertiser owes for a settlement period, itemised, with every adjustment
 | `subtotal_micros` | [`micros`](micros.md) |  |  |
 | `tax` | object |  |  |
 | `total_micros` | [`micros`](micros.md) | yes |  |
+| `held_micros` | integer |  | Amount under open dispute. Held, not credited: filing a dispute makes an amount uncollectible until it resolves, it does not decide it. Crediting on filing both pre-judges the outcome and leaves the payout side unreversed. *(minimum 0)* |
+| `collectible_micros` | integer |  | total_micros less held_micros. What the advertiser owes right now. *(minimum 0)* |
 | `due_at` | string (date-time) |  |  |
 | `issued_at` | string (date-time) |  |  |
 | `mandate` | string |  | AP2 payment mandate derived for this invoice. *(maxLength 512)* |
