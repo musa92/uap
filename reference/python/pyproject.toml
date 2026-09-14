@@ -26,7 +26,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-fast = ["cryptography>=42"]
+fast = ["cryptography>=50.0.1"]
 dev = ["pytest>=8", "jsonschema>=4", "hypothesis>=6.100"]
 
 [project.urls]
