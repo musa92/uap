@@ -34,7 +34,7 @@ jobs:
           cp -R source/schemas/. site/schemas/
           cp -R source/taxonomy site/taxonomy
           cp -R source/services site/services
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with: { path: site }
 
   deploy:
